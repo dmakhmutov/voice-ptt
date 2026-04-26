@@ -151,20 +151,34 @@ final class UpdateChecker: ObservableObject {
             // Hand off to a helper that waits for us to exit, swaps the bundle,
             // strips the quarantine xattr (so Gatekeeper doesn't complain on
             // the next launch), and relaunches.
+            //
+            // We pass the PID and both paths as positional arguments to
+            // `sh -c`, NOT interpolated into the script source. That means
+            // even if a path contained a single quote / `$(...)` / backtick
+            // (an attacker-renamed bundle, in principle), the shell would
+            // treat those characters as literal data inside "$2" / "$3"
+            // expansions — no command injection possible.
             let pid = ProcessInfo.processInfo.processIdentifier
             let currentApp = Bundle.main.bundlePath
             let script = """
-            while kill -0 \(pid) 2>/dev/null; do sleep 0.2; done
-            rm -rf '\(currentApp)'
-            mv '\(newApp.path)' '\(currentApp)'
-            xattr -dr com.apple.quarantine '\(currentApp)' 2>/dev/null || true
+            while kill -0 "$1" 2>/dev/null; do sleep 0.2; done
+            rm -rf "$2"
+            mv "$3" "$2"
+            xattr -dr com.apple.quarantine "$2" 2>/dev/null || true
             sleep 0.3
-            open '\(currentApp)'
+            open "$2"
             """
 
             let helper = Process()
             helper.executableURL = URL(fileURLWithPath: "/bin/sh")
-            helper.arguments = ["-c", script]
+            helper.arguments = [
+                "-c",
+                script,
+                "voiceptt-installer",   // $0 — conventional script name
+                "\(pid)",               // $1 — old process pid
+                currentApp,             // $2 — current bundle path (gets replaced)
+                newApp.path             // $3 — newly unpacked .app path
+            ]
             try helper.run()
 
             installState = .relaunching
