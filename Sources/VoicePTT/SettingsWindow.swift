@@ -6,6 +6,8 @@ import Carbon.HIToolbox
 final class SettingsWindowController: NSObject {
     private var window: NSWindow?
     var onChange: (() -> Void)?
+    /// Returns the recognized text (or a short error message). Set by AppDelegate.
+    var onTestRecording: (() async -> String)?
 
     func show() {
         if let window {
@@ -13,12 +15,17 @@ final class SettingsWindowController: NSObject {
             NSApp.activate(ignoringOtherApps: true)
             return
         }
-        let view = SettingsView { [weak self] in self?.onChange?() }
+        let view = SettingsView(
+            onChange: { [weak self] in self?.onChange?() },
+            onTestRecording: { [weak self] in
+                await self?.onTestRecording?() ?? ""
+            }
+        )
         let host = NSHostingController(rootView: view)
         let win = NSWindow(contentViewController: host)
         win.title = "VoicePTT — Settings"
         win.styleMask = [.titled, .closable]
-        win.setContentSize(NSSize(width: 460, height: 540))
+        win.setContentSize(NSSize(width: 460, height: 620))
         win.center()
         win.isReleasedWhenClosed = false
         window = win
@@ -33,6 +40,7 @@ private struct SettingsView: View {
     @State private var launchAtLogin: Bool = Settings.shared.launchAtLogin
     @ObservedObject private var status = AppStatus.shared
     let onChange: () -> Void
+    let onTestRecording: () async -> String
 
     var body: some View {
         Form {
@@ -88,9 +96,62 @@ private struct SettingsView: View {
                 }
                 .controlSize(.small)
             }
+
+            Divider()
+
+            TestRecordingSection(onRun: onTestRecording)
         }
         .padding(20)
         .frame(width: 460)
+    }
+}
+
+private struct TestRecordingSection: View {
+    let onRun: () async -> String
+    @State private var isRunning = false
+    @State private var result: String = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Test recording").font(.headline)
+                Spacer()
+                Button(action: run) {
+                    if isRunning {
+                        Label("Recording 3s…", systemImage: "mic.fill")
+                    } else {
+                        Label("Run 3-second test", systemImage: "mic")
+                    }
+                }
+                .disabled(isRunning)
+                .controlSize(.small)
+            }
+
+            if result.isEmpty {
+                Text("Click the button, then speak any phrase. The recognized text appears below — handy for verifying the mic + model + permissions all work.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                ScrollView {
+                    Text(result)
+                        .font(.body)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(8)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 50, maxHeight: 100)
+                .background(Color.secondary.opacity(0.08))
+                .cornerRadius(6)
+            }
+        }
+    }
+
+    private func run() {
+        Task {
+            isRunning = true
+            result = await onRun()
+            isRunning = false
+        }
     }
 }
 

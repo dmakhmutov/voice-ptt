@@ -16,6 +16,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menubar.onOpenSettings = { [weak self] in self?.settingsWindow.show() }
         menubar.onQuit = { NSApp.terminate(nil) }
         settingsWindow.onChange = { [weak self] in self?.applySettings() }
+        settingsWindow.onTestRecording = { [weak self] in
+            await self?.runTestRecording() ?? "App unavailable"
+        }
 
         configureHotkeyCallbacks()
         applySettings()
@@ -54,6 +57,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
+    }
+
+    /// Records 3 seconds, transcribes, returns the recognized text.
+    /// Used by the "Test recording" button in Settings to verify the pipeline
+    /// without going through a real hotkey session.
+    func runTestRecording() async -> String {
+        guard case .ready = transcriber.state else {
+            return "Model not ready yet — wait a few seconds for it to load."
+        }
+        if isRecording {
+            return "A hotkey recording is already in progress — stop it first."
+        }
+        do {
+            try recorder.start()
+        } catch {
+            return "Recorder failed to start: \(error.localizedDescription)"
+        }
+        recordingIndicator.show()
+        try? await Task.sleep(nanoseconds: 3_000_000_000)
+        let samples = recorder.stop()
+        recordingIndicator.hide()
+        let text = await transcriber.transcribe(samples) ?? ""
+        return text.isEmpty ? "(no speech detected)" : text
     }
 
     private func notify(title: String, body: String) {
