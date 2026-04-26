@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+#
+# Build VoicePTT.app: swift build → bundle → codesign. Doesn't launch.
+# Use ./rebuild.sh for the everyday dev loop, or call this directly from
+# release.sh / CI where you don't want a window popping up.
+
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -29,16 +34,3 @@ else
 fi
 
 echo "==> done: $APP"
-
-# Launch (or relaunch) the app after a successful build. Skipped when
-# called from release.sh — we want the old version to stay up so the
-# in-app 'Download & install' has something to update from. Override
-# manually with NO_RESTART=1.
-if [ -z "${NO_RESTART:-}" ]; then
-    if pgrep -f "$APP/Contents/MacOS/$BIN_NAME" >/dev/null 2>&1; then
-        echo "==> restarting running app"
-        killall -9 "$BIN_NAME" 2>/dev/null || true
-        sleep 0.4
-    fi
-    open "$APP"
-fi

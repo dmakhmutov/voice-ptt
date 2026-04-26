@@ -50,10 +50,10 @@ git commit -m "release: $TAG"
 git push
 
 echo "==> Building"
-# Don't restart the running app — keeping the old version live lets us
-# (and end users) test the in-app 'Download & install' flow against the
+# Use build.sh directly (not build-and-run.sh) — keeping the old version
+# live lets us test the in-app 'Download & install' flow against the
 # new release we're about to publish.
-NO_RESTART=1 ./build.sh >/dev/null
+./build.sh >/dev/null
 
 echo "==> Packaging $ZIP"
 rm -f "$ZIP"

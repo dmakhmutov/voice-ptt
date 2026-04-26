@@ -7,10 +7,10 @@ Notes for hacking on VoicePTT or filing detailed bug reports. End-user docs are 
 ```sh
 git clone git@github.com:dmakhmutov/voice-ptt.git
 cd voice-ptt
-./build.sh
+./rebuild.sh
 ```
 
-`build.sh` runs `swift build -c release`, packages a `.app` bundle, codesigns it, and auto-restarts the app if it's already running.
+`rebuild.sh` calls `build.sh` (which runs `swift build -c release`, packages a `.app` bundle, and codesigns) and then (re)launches the app. For just building without launching, use `./build.sh`.
 
 **Optional but recommended:** create a self-signed code-signing certificate in Keychain Access → Certificate Assistant → Create a Certificate, name `VoicePTT Local`, type `Code Signing` (leave override-defaults off). `build.sh` auto-detects it. Without it, you'll re-grant Accessibility every rebuild because each ad-hoc signature has a different code identity.
 
@@ -26,8 +26,8 @@ softwareupdate -i "Command Line Tools for Xcode-16.4"
 
 ```sh
 swift build                           # debug compile, no .app bundle
-./build.sh                            # release + .app + codesign + auto-restart
-NO_RESTART=1 ./build.sh               # build without restarting the running app
+./rebuild.sh                          # release + .app + codesign + (re)launch
+./build.sh                            # release + .app + codesign (no launch)
 swift package clean                   # nuke .build/
 swift tools/make_icon.swift           # regenerate Resources/AppIcon.icns
 ```
