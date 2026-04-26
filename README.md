@@ -8,6 +8,23 @@ Tested with English and Russian. The underlying Parakeet TDT v2/v3 models suppor
 
 ---
 
+## Quick install
+
+```sh
+git clone git@github.com:dmakhmutov/voice-ptt.git
+cd voice-ptt
+./build.sh
+open VoicePTT.app
+```
+
+That's it. On first launch the Settings window opens automatically with a Status panel — grant **Microphone** and **Accessibility**, wait for the model to download (~2.5 GB, one-time), then press `⌘⇧Space` and dictate.
+
+> *(Optional, recommended)* Create a self-signed code-signing cert named `VoicePTT Local` once via **Keychain Access → Certificate Assistant → Create a Certificate…** → `Code Signing` type. `build.sh` auto-uses it; without it, you'll have to re-grant Accessibility after every rebuild.
+
+If anything below the Quick install applies to you (you don't have Xcode installed, you hit a build error, you need to know what's actually happening), keep reading.
+
+---
+
 ## Requirements
 
 | Component | Minimum | Recommended |
