@@ -106,6 +106,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Called when the user launches the already-running app again (Finder
+    /// double-click, Spotlight, Alfred, `open VoicePTT.app`). Without this
+    /// hook nothing visible happens, which is a UX dead-end for a
+    /// menubar-only app. We open Settings instead — that's the only
+    /// reasonable interactive surface we have.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        settingsWindow.show()
+        return false
+    }
+
     /// Records 3 seconds, transcribes, returns the recognized text.
     /// Used by the "Test recording" button in Settings to verify the pipeline
     /// without going through a real hotkey session.
