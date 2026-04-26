@@ -35,8 +35,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in
             Task { @MainActor in AppStatus.shared.refreshPermissions() }
         }
-        hud.show("VoicePTT loading model…", duration: 5.0)
-        notify(title: "VoicePTT", body: "Loading model…")
+        // Persistent HUD until the model finishes loading. First-time
+        // download can take a couple of minutes, and a 5-second auto-
+        // dismiss left the user staring at nothing.
+        let isFirstDownload = !ModelStorage.shared.hasAnyCachedModel
+        let loadingMessage = isFirstDownload
+            ? "Downloading speech model…\nFirst time only, ~500 MB"
+            : "Loading speech model…"
+        hud.show(loadingMessage, duration: nil)
+        notify(title: "VoicePTT", body: isFirstDownload ? "Downloading model (~500 MB)…" : "Loading model…")
 
         if !UserDefaults.standard.bool(forKey: "app.firstLaunchCompleted") {
             UserDefaults.standard.set(true, forKey: "app.firstLaunchCompleted")

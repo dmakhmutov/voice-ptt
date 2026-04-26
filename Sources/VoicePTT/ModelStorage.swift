@@ -26,6 +26,17 @@ final class ModelStorage: ObservableObject {
             .appendingPathComponent("FluidAudio/Models", isDirectory: true)
     }
 
+    /// True if any model directory already exists in the cache (i.e. not the
+    /// first run). Used to pick between "Downloading…" vs "Loading…" copy
+    /// when the app starts.
+    var hasAnyCachedModel: Bool {
+        let fm = FileManager.default
+        guard let contents = try? fm.contentsOfDirectory(at: cacheURL, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) else {
+            return false
+        }
+        return !contents.isEmpty
+    }
+
     var cachePathDisplay: String {
         cacheURL.path.replacingOccurrences(
             of: NSHomeDirectory(),

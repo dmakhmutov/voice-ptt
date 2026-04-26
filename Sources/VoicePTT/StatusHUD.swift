@@ -9,18 +9,28 @@ final class StatusHUD {
     private weak var label: NSTextField?
     private var hideTask: DispatchWorkItem?
 
-    func show(_ message: String, duration: TimeInterval = 3.0) {
+    /// `duration: nil` keeps the HUD up indefinitely until `hide()` is called
+    /// or another `show(...)` call replaces the message and timer.
+    func show(_ message: String, duration: TimeInterval? = 3.0) {
         let panel = self.panel ?? makePanel()
         label?.stringValue = message
         sizeAndPosition(panel)
         panel.orderFrontRegardless()
 
         hideTask?.cancel()
+        hideTask = nil
+        guard let duration else { return }
         let task = DispatchWorkItem { [weak self] in
             self?.panel?.orderOut(nil)
         }
         hideTask = task
         DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: task)
+    }
+
+    func hide() {
+        hideTask?.cancel()
+        hideTask = nil
+        panel?.orderOut(nil)
     }
 
     private func makePanel() -> NSPanel {
