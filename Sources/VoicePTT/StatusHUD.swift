@@ -33,9 +33,16 @@ final class StatusHUD {
         panel?.orderOut(nil)
     }
 
+    /// Updates the message text without re-showing or re-positioning the
+    /// panel. Use this for high-frequency updates (e.g. download progress
+    /// ticks); calling `show(...)` repeatedly would flicker.
+    func update(_ message: String) {
+        label?.stringValue = message
+    }
+
     private func makePanel() -> NSPanel {
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 280, height: 56),
+            contentRect: NSRect(x: 0, y: 0, width: 340, height: 56),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false

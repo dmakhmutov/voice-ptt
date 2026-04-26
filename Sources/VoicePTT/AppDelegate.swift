@@ -19,6 +19,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private static let maxRecordingDuration: TimeInterval = 120
     private var maxDurationTask: DispatchWorkItem?
 
+    private var modelDownloadTimer: Timer?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         menubar.onOpenSettings = { [weak self] in self?.settingsWindow.show() }
         menubar.onQuit = { NSApp.terminate(nil) }
@@ -40,10 +42,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // dismiss left the user staring at nothing.
         let isFirstDownload = !ModelStorage.shared.hasAnyCachedModel
         let loadingMessage = isFirstDownload
-            ? "Downloading speech model…\nFirst time only, ~500 MB"
+            ? "Downloading speech model…\nFirst time only, \(ModelInfo.sizeDescription)"
             : "Loading speech model…"
         hud.show(loadingMessage, duration: nil)
-        notify(title: "VoicePTT", body: isFirstDownload ? "Downloading model (~500 MB)…" : "Loading model…")
+        notify(
+            title: "VoicePTT",
+            body: isFirstDownload ? "Downloading model (\(ModelInfo.sizeDescription))…" : "Loading model…"
+        )
 
         if !UserDefaults.standard.bool(forKey: "app.firstLaunchCompleted") {
             UserDefaults.standard.set(true, forKey: "app.firstLaunchCompleted")
@@ -109,6 +114,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         recordingIndicator.hide()
         let text = await transcriber.transcribe(samples) ?? ""
         return text.isEmpty ? "(no speech detected)" : text
+    }
+
+    /// Polls the model cache directory size and pushes a progress message
+    /// into the HUD. FluidAudio 0.8.x's `AsrModels.downloadAndLoad()` doesn't
+    /// expose real progress, so we approximate by watching how much arrived
+    /// on disk so far against an empirical full-download size.
+    private func startModelDownloadProgress() {
+        modelDownloadTimer?.invalidate()
+        modelDownloadTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                let bytes = ModelStorage.shared.currentCacheBytes()
+                let mb = Int(bytes / (1024 * 1024))
+                let percent = min(100, Int(Double(mb) * 100.0 / Double(ModelInfo.expectedSizeMB)))
+                self.hud.update("Downloading speech model — \(percent)% (\(mb)/\(ModelInfo.expectedSizeMB) MB)")
+            }
+        }
+    }
+
+    private func stopModelDownloadProgress() {
+        modelDownloadTimer?.invalidate()
+        modelDownloadTimer = nil
     }
 
     private func notify(title: String, body: String) {

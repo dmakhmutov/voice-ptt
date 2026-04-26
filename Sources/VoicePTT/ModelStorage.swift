@@ -3,10 +3,10 @@ import Foundation
 
 /// Inspector + janitor for FluidAudio's model cache. FluidAudio downloads
 /// models into `~/Library/Application Support/FluidAudio/Models/` and never
-/// cleans them up — every version bump leaves the previous ~500 MB Parakeet
-/// behind. The Settings UI shows what's there and lets the user nuke stale
-/// entries (or the whole cache; the active model gets re-downloaded on next
-/// launch).
+/// cleans them up — every version bump leaves the previous model behind
+/// (see `ModelInfo.expectedSizeMB`). The Settings UI shows what's there and
+/// lets the user nuke stale entries (or the whole cache; the active model
+/// gets re-downloaded on next launch).
 @MainActor
 final class ModelStorage: ObservableObject {
     static let shared = ModelStorage()
@@ -35,6 +35,27 @@ final class ModelStorage: ObservableObject {
             return false
         }
         return !contents.isEmpty
+    }
+
+    /// Total bytes currently inside the cache directory (sum across all
+    /// subdirectories). Used to fake a download progress indicator while
+    /// FluidAudio is fetching the model — its 0.8.x API doesn't expose
+    /// real progress callbacks.
+    func currentCacheBytes() -> Int64 {
+        let fm = FileManager.default
+        guard let enumerator = fm.enumerator(
+            at: cacheURL,
+            includingPropertiesForKeys: [.totalFileAllocatedSizeKey],
+            options: []
+        ) else { return 0 }
+        var total: Int64 = 0
+        for case let item as URL in enumerator {
+            if let bytes = try? item.resourceValues(forKeys: [.totalFileAllocatedSizeKey])
+                .totalFileAllocatedSize {
+                total += Int64(bytes)
+            }
+        }
+        return total
     }
 
     var cachePathDisplay: String {
