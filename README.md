@@ -222,32 +222,6 @@ ls -la "$HOME/Library/Application Support/FluidAudio/Models/"
 
 ---
 
-## Roadmap
-
-Done:
-- [x] Push-to-talk hotkey + paste-at-end transcription
-- [x] Settings window with mode + hotkey + launch-at-login
-- [x] Menubar status indicator + launch HUD + system notification + cursor dot during recording
-- [x] Self-documenting Status panel in Settings (Mic / Accessibility / Notifications / Model)
-- [x] In-Settings "Test recording" button
-- [x] Auto-stop after 120 seconds (safety against stuck hotkey)
-- [x] Stable self-signed code-signing identity (Accessibility-grant survives rebuilds)
-- [x] Prebuilt `.app.zip` on GitHub Releases
-
-Not yet:
-- [ ] Toggle between Russian-only / English-only / auto-detect (small latency win)
-- [ ] Notarized `.dmg` (would skip the right-click → Open Gatekeeper dance — needs Apple Developer account)
-- [ ] History of recent transcriptions
-
-> Live streaming transcription was attempted on the `feature/live-typing` branch
-> and rolled back. With FluidAudio 0.8.x's chunk-based emission the partials
-> arrive in big batches at chunk boundaries, and synthesizing CGEvents while
-> the user is still holding modifiers (in hold mode) conflicts with the active
-> app. Net UX wasn't better than paste-at-end. May revisit once FluidAudio
-> exposes a finer-grained hypothesis stream.
-
----
-
 ## Credits
 
 - [FluidAudio](https://github.com/FluidInference/FluidAudio) — Swift SDK that does the actual ASR. We're a thin UX wrapper around it.
