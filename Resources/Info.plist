@@ -6,6 +6,10 @@
 	<string>VoicePTT</string>
 	<key>CFBundleExecutable</key>
 	<string>VoicePTT</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>local.voiceptt</string>
 	<key>CFBundleName</key>
