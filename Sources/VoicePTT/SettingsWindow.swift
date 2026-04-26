@@ -25,7 +25,7 @@ final class SettingsWindowController: NSObject {
         let win = NSWindow(contentViewController: host)
         win.title = "VoicePTT — Settings"
         win.styleMask = [.titled, .closable]
-        win.setContentSize(NSSize(width: 460, height: 620))
+        win.setContentSize(NSSize(width: 460, height: 760))
         win.center()
         win.isReleasedWhenClosed = false
         window = win
@@ -104,9 +104,90 @@ private struct SettingsView: View {
             Divider()
 
             UpdateSection()
+
+            Divider()
+
+            ModelStorageSection()
         }
         .padding(20)
         .frame(width: 460)
+    }
+}
+
+private struct ModelStorageSection: View {
+    @ObservedObject private var storage = ModelStorage.shared
+    @State private var confirmClear = false
+
+    private static let formatter: ByteCountFormatter = {
+        let f = ByteCountFormatter()
+        f.allowedUnits = [.useMB, .useGB, .useKB]
+        f.countStyle = .file
+        return f
+    }()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Model storage").font(.headline)
+                Spacer()
+                Button("Open in Finder") { storage.openInFinder() }
+                    .controlSize(.small)
+            }
+
+            Text(storage.cachePathDisplay)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+
+            if storage.entries.isEmpty {
+                Text("Cache is empty. Models will download on the next launch.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(spacing: 4) {
+                    ForEach(storage.entries) { entry in
+                        HStack(spacing: 8) {
+                            Text(entry.name)
+                                .font(.caption)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            Text(Self.formatter.string(fromByteCount: entry.size))
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                            Button {
+                                storage.remove(entry)
+                            } label: {
+                                Image(systemName: "trash")
+                            }
+                            .buttonStyle(.borderless)
+                            .controlSize(.small)
+                            .help("Delete \(entry.name)")
+                        }
+                    }
+                }
+                .padding(8)
+                .background(Color.secondary.opacity(0.06))
+                .cornerRadius(6)
+
+                HStack {
+                    Text("Total: \(Self.formatter.string(fromByteCount: storage.totalSize))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Clear all", role: .destructive) { confirmClear = true }
+                        .controlSize(.small)
+                }
+            }
+        }
+        .onAppear { storage.refresh() }
+        .alert("Clear all model caches?", isPresented: $confirmClear) {
+            Button("Cancel", role: .cancel) {}
+            Button("Clear", role: .destructive) { storage.clearAll() }
+        } message: {
+            Text("This deletes \(Self.formatter.string(fromByteCount: storage.totalSize)) from \(storage.cachePathDisplay). The active model will redownload on the next launch (~2.5 GB).")
+        }
     }
 }
 
