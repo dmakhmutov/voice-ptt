@@ -10,6 +10,15 @@ Tested with English and Russian. The underlying Parakeet TDT v2/v3 models suppor
 
 ## Quick install
 
+### Option A — Download the prebuilt app (recommended for users)
+
+1. Grab `VoicePTT-X.Y.zip` from the **[latest release](https://github.com/dmakhmutov/voice-ptt/releases/latest)**
+2. Unzip → drag `VoicePTT.app` to `/Applications` (or anywhere you like)
+3. **Right-click `VoicePTT.app` → Open** the first time. macOS shows a "developer cannot be verified" warning because the app uses a self-signed certificate — click **Open** in the dialog. Subsequent launches work normally.
+4. The Settings window opens automatically — grant **Microphone** and **Accessibility** (the panel has direct buttons), wait for the model to download (~2.5 GB, one-time), press `⌘⇧Space` and dictate
+
+### Option B — Build from source (for contributors)
+
 ```sh
 git clone git@github.com:dmakhmutov/voice-ptt.git
 cd voice-ptt
@@ -17,9 +26,7 @@ cd voice-ptt
 open VoicePTT.app
 ```
 
-That's it. On first launch the Settings window opens automatically with a Status panel — grant **Microphone** and **Accessibility**, wait for the model to download (~2.5 GB, one-time), then press `⌘⇧Space` and dictate.
-
-> *(Optional, recommended)* Create a self-signed code-signing cert named `VoicePTT Local` once via **Keychain Access → Certificate Assistant → Create a Certificate…** → `Code Signing` type. `build.sh` auto-uses it; without it, you'll have to re-grant Accessibility after every rebuild.
+> *(Optional, recommended)* Before the first build, create a self-signed code-signing cert named `VoicePTT Local` once via **Keychain Access → Certificate Assistant → Create a Certificate…** → `Code Signing` type. `build.sh` auto-uses it; without it, you'll have to re-grant Accessibility after every rebuild.
 
 If anything below the Quick install applies to you (you don't have Xcode installed, you hit a build error, you need to know what's actually happening), keep reading.
 
