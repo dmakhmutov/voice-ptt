@@ -230,4 +230,4 @@ ls -la "$HOME/Library/Application Support/FluidAudio/Models/"
 
 ## License
 
-MIT (see `LICENSE` once added).
+MIT — see [`LICENSE`](LICENSE).
