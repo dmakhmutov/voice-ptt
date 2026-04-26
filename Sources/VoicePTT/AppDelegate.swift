@@ -87,12 +87,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 if case .ready = self.transcriber.state {
                     self.menubar.update(state: .idle)
                     AppStatus.shared.modelLoaded = true
-                    let hk = Settings.shared.hotkey.displayString
-                    self.hud.show("🎙 VoicePTT ready — \(hk)")
-                    self.notify(title: "VoicePTT ready", body: "Press \(hk) to dictate")
+                    let label: String
+                    switch Settings.shared.triggerKind {
+                    case .hotkey:
+                        label = "VoicePTT ready — \(Settings.shared.hotkey.displayString)"
+                    case .rightCommand:
+                        label = "VoicePTT ready — hold Right ⌘"
+                    }
+                    self.hud.show(label, systemImage: "mic.fill")
+                    self.notify(title: "VoicePTT ready", body: label)
                 } else if case .failed(let err) = self.transcriber.state {
                     self.menubar.update(state: .error(err.localizedDescription))
-                    self.hud.show("⚠️ VoicePTT failed: \(err.localizedDescription)", duration: 6.0)
+                    self.hud.show("VoicePTT failed: \(err.localizedDescription)",
+                                  systemImage: "exclamationmark.triangle.fill",
+                                  duration: 6.0)
                     self.notify(title: "VoicePTT failed to start", body: err.localizedDescription)
                 }
             }
@@ -104,7 +112,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             await UpdateChecker.shared.checkIfStale()
             if case .updateAvailable(let info) = UpdateChecker.shared.status {
                 await MainActor.run {
-                    self?.hud.show("⬇ Update available: v\(info.version)", duration: 6.0)
+                    self?.hud.show("Update available: v\(info.version)",
+                                   systemImage: "arrow.down.circle.fill",
+                                   duration: 6.0)
                     self?.notify(
                         title: "VoicePTT update v\(info.version)",
                         body: "Open Settings → Updates to download."
@@ -304,7 +314,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self, self.isRecording else { return }
             let secs = Int(Self.maxRecordingDuration)
             NSLog("VoicePTT: hit max recording duration (\(secs)s), auto-stopping")
-            self.hud.show("⏱ Auto-stopped after \(secs)s", duration: 4.0)
+            self.hud.show("Auto-stopped after \(secs)s",
+                          systemImage: "timer",
+                          duration: 4.0)
             self.finishRecording()
         }
         maxDurationTask = task
