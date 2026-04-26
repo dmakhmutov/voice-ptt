@@ -29,7 +29,7 @@ struct PermissionsSection: View {
             )
             statusRow(
                 label: "Speech model",
-                hint: "Parakeet (~2.5 GB) downloads on first launch.",
+                hint: "Parakeet (~500 MB) downloads on first launch.",
                 granted: status.modelLoaded,
                 fixURL: nil
             )

@@ -3,7 +3,7 @@ import Foundation
 
 /// Inspector + janitor for FluidAudio's model cache. FluidAudio downloads
 /// models into `~/Library/Application Support/FluidAudio/Models/` and never
-/// cleans them up — every version bump leaves the previous ~2.5 GB Parakeet
+/// cleans them up — every version bump leaves the previous ~500 MB Parakeet
 /// behind. The Settings UI shows what's there and lets the user nuke stale
 /// entries (or the whole cache; the active model gets re-downloaded on next
 /// launch).

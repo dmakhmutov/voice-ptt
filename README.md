@@ -15,7 +15,7 @@ Tested with English and Russian. The underlying Parakeet TDT v2/v3 models suppor
 1. Grab `VoicePTT-X.Y.zip` from the **[latest release](https://github.com/dmakhmutov/voice-ptt/releases/latest)**
 2. Unzip → drag `VoicePTT.app` to `/Applications` (or anywhere you like)
 3. **Right-click `VoicePTT.app` → Open** the first time. macOS shows a "developer cannot be verified" warning because the app uses a self-signed certificate — click **Open** in the dialog. Subsequent launches work normally.
-4. The Settings window opens automatically — grant **Microphone** and **Accessibility** (the panel has direct buttons), wait for the model to download (~2.5 GB, one-time), press `⌘⇧Space` and dictate
+4. The Settings window opens automatically — grant **Microphone** and **Accessibility** (the panel has direct buttons), wait for the model to download (~500 MB, one-time), press `⌘⇧Space` and dictate
 
 ### Option B — Build from source (for contributors)
 
@@ -38,7 +38,7 @@ If anything below the Quick install applies to you (you don't have Xcode install
 |---|---|---|
 | macOS | 14.0 (Sonoma) | 15.x (Sequoia) |
 | Hardware | Apple Silicon (M1+) | M2/M3/M4 with ANE |
-| Disk space | ~3 GB free (model is ~2.5 GB) | — |
+| Disk space | ~1 GB free (model is ~500 MB) | — |
 | RAM | 8 GB | 16 GB |
 | Toolchain | Swift 5.10 (Xcode 15.x or Command Line Tools 15.x) | Swift 6.0+ for latest FluidAudio |
 
@@ -60,7 +60,7 @@ softwareupdate -i "Command Line Tools for Xcode-16.4"
 
 **Missed a permission dialog?** Open the app's Settings (menubar → Settings…). The Status panel at the top shows what's granted and gives you direct buttons to the right System Settings pane for each missing permission.
 
-**Where the model lives:** `~/Library/Application Support/FluidAudio/Models/`. ~2.5 GB, downloaded once on first launch from Hugging Face (1–5 minutes depending on connection). Subsequent launches reuse the cache and start in 2–5 seconds.
+**Where the model lives:** `~/Library/Application Support/FluidAudio/Models/`. ~500 MB (CoreML-quantized Parakeet TDT), downloaded once on first launch from Hugging Face. Subsequent launches reuse the cache and start in 2–5 seconds.
 
 **Watching the model load progress** or any logs:
 

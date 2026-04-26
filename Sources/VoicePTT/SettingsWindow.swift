@@ -186,7 +186,7 @@ private struct ModelStorageSection: View {
             Button("Cancel", role: .cancel) {}
             Button("Clear", role: .destructive) { storage.clearAll() }
         } message: {
-            Text("This deletes \(Self.formatter.string(fromByteCount: storage.totalSize)) from \(storage.cachePathDisplay). The active model will redownload on the next launch (~2.5 GB).")
+            Text("This deletes \(Self.formatter.string(fromByteCount: storage.totalSize)) from \(storage.cachePathDisplay). The active model will redownload on the next launch (~500 MB).")
         }
     }
 }
