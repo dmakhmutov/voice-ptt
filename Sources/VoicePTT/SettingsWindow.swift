@@ -2,6 +2,15 @@ import AppKit
 import SwiftUI
 import Carbon.HIToolbox
 
+/// NSWindow subclass that closes itself when the user presses Esc. macOS's
+/// responder chain calls `cancelOperation:` for Esc; the default does
+/// nothing for a regular window, but we want to dismiss Settings.
+private final class EscapableWindow: NSWindow {
+    override func cancelOperation(_ sender: Any?) {
+        close()
+    }
+}
+
 @MainActor
 final class SettingsWindowController: NSObject {
     private var window: NSWindow?
@@ -28,7 +37,7 @@ final class SettingsWindowController: NSObject {
             }
         )
         let host = NSHostingController(rootView: view)
-        let win = NSWindow(contentViewController: host)
+        let win = EscapableWindow(contentViewController: host)
         win.title = "VoicePTT — Settings"
         win.styleMask = [.titled, .closable]
         win.setContentSize(NSSize(width: 540, height: 720))

@@ -62,10 +62,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         startModelLoadProgress()
 
-        if !UserDefaults.standard.bool(forKey: "app.firstLaunchCompleted") {
-            UserDefaults.standard.set(true, forKey: "app.firstLaunchCompleted")
-            // Open Settings so the user sees the Status panel and can grant
-            // any missing permissions without hunting through the menubar.
+        // Show Settings on every user-initiated launch (Finder double-click,
+        // Spotlight, Alfred, `open VoicePTT.app`). Skip when the launch was
+        // automatic via SMAppService at login — we don't want to surprise
+        // the user with a popup right after their machine boots.
+        //
+        // `NSApplication.launchIsDefaultUserInfoKey` is true for normal
+        // user-initiated launches and false (or absent) for login-item /
+        // programmatic launches.
+        let isUserLaunch = (notification.userInfo?[
+            NSApplication.launchIsDefaultUserInfoKey
+        ] as? Bool) ?? true
+        if isUserLaunch {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                 self?.settingsWindow.show()
             }
