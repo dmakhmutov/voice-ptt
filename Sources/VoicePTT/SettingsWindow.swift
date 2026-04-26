@@ -63,6 +63,7 @@ private struct SettingsView: View {
     @State private var mode: HotkeyMode = Settings.shared.mode
     @State private var hotkey: HotkeyBinding = Settings.shared.hotkey
     @State private var launchAtLogin: Bool = Settings.shared.launchAtLogin
+    @State private var rightCommandPTT: Bool = Settings.shared.rightCommandPTT
     @ObservedObject private var status = AppStatus.shared
     let onChange: () -> Void
     let onTestRecording: () async -> String
@@ -80,6 +81,7 @@ private struct SettingsView: View {
                     mode: $mode,
                     hotkey: $hotkey,
                     launchAtLogin: $launchAtLogin,
+                    rightCommandPTT: $rightCommandPTT,
                     onChange: onChange
                 )
 
@@ -98,6 +100,7 @@ private struct BehaviorSection: View {
     @Binding var mode: HotkeyMode
     @Binding var hotkey: HotkeyBinding
     @Binding var launchAtLogin: Bool
+    @Binding var rightCommandPTT: Bool
     let onChange: () -> Void
 
     var body: some View {
@@ -128,6 +131,16 @@ private struct BehaviorSection: View {
                         onChange()
                     }
                 Spacer()
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Toggle("Right ⌘ for push-to-talk", isOn: $rightCommandPTT)
+                    .onChange(of: rightCommandPTT) { _, newValue in
+                        Settings.shared.rightCommandPTT = newValue
+                        onChange()
+                    }
+                Text("Hold Right ⌘ alone (no other keys) to record. Existing hotkey still works.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
 
             VStack(alignment: .leading, spacing: 4) {

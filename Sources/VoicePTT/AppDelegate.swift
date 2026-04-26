@@ -6,11 +6,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let menubar = MenuBarController()
     private let settingsWindow = SettingsWindowController()
     private let hotkey = HotkeyManager()
+    private let rightCmdMonitor = RightCommandMonitor()
     private let recorder = AudioRecorder()
     private let transcriber = Transcriber()
     private let hud = StatusHUD()
     private let recordingIndicator = RecordingIndicator()
     private var isRecording = false
+    /// True when the active recording was kicked off by the Right Cmd monitor
+    /// (vs. the configured Carbon hotkey). Used to know whether to stop on
+    /// Right Cmd release without ending a hotkey-triggered session.
+    private var recordingViaRightCmd = false
 
     /// Hard cap on recording duration. Protects against a stuck hotkey or a
     /// user who walked away with the app still recording — buffers grow
@@ -193,12 +198,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func applySettings() {
         hotkey.register(Settings.shared.hotkey)
+        if Settings.shared.rightCommandPTT {
+            rightCmdMonitor.enable()
+        } else {
+            rightCmdMonitor.disable()
+        }
         menubar.refreshSettingsLabels()
+    }
+
+    private func handleRightCmdPress() {
+        guard !isRecording else { return }
+        recordingViaRightCmd = true
+        beginRecording()
+    }
+
+    private func handleRightCmdRelease() {
+        guard recordingViaRightCmd else { return }
+        recordingViaRightCmd = false
+        if isRecording {
+            finishRecording()
+        }
     }
 
     private func configureHotkeyCallbacks() {
         hotkey.onKeyDown = { [weak self] in self?.handleKeyDown() }
         hotkey.onKeyUp = { [weak self] in self?.handleKeyUp() }
+        rightCmdMonitor.onPress = { [weak self] in self?.handleRightCmdPress() }
+        rightCmdMonitor.onRelease = { [weak self] in self?.handleRightCmdRelease() }
     }
 
     private func handleKeyDown() {

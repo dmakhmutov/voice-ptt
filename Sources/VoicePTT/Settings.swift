@@ -35,6 +35,7 @@ final class Settings {
         static let keyCode = "hotkey.keyCode"
         static let modifiers = "hotkey.modifiers"
         static let launchAtLogin = "app.launchAtLogin"
+        static let rightCommandPTT = "hotkey.rightCommandPTT"
     }
 
     var mode: HotkeyMode {
@@ -59,6 +60,14 @@ final class Settings {
     var launchAtLogin: Bool {
         get { defaults.bool(forKey: Key.launchAtLogin) }
         set { defaults.set(newValue, forKey: Key.launchAtLogin) }
+    }
+
+    /// Hold the **Right Command key alone** (no other modifiers) as an
+    /// additional push-to-talk trigger. Coexists with the configured hotkey;
+    /// off by default.
+    var rightCommandPTT: Bool {
+        get { defaults.bool(forKey: Key.rightCommandPTT) }
+        set { defaults.set(newValue, forKey: Key.rightCommandPTT) }
     }
 }
 
