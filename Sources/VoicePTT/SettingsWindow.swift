@@ -100,9 +100,81 @@ private struct SettingsView: View {
             Divider()
 
             TestRecordingSection(onRun: onTestRecording)
+
+            Divider()
+
+            UpdateSection()
         }
         .padding(20)
         .frame(width: 460)
+    }
+}
+
+private struct UpdateSection: View {
+    @ObservedObject private var checker = UpdateChecker.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Updates").font(.headline)
+                Spacer()
+                Button("Check now") {
+                    Task { await checker.check() }
+                }
+                .controlSize(.small)
+                .disabled(isChecking)
+            }
+
+            content
+        }
+    }
+
+    private var isChecking: Bool {
+        if case .checking = checker.status { return true }
+        return false
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch checker.status {
+        case .unknown:
+            Text("Current version: \(checker.ownVersion). Click 'Check now' to look for new releases.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        case .checking:
+            Text("Checking GitHub…")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        case .upToDate(let v):
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                Text("Up to date — running v\(v).").font(.caption).foregroundStyle(.secondary)
+            }
+        case .updateAvailable(let info):
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.down.circle.fill").foregroundStyle(.orange)
+                    Text("Update available: v\(info.version)").fontWeight(.medium)
+                }
+                if !info.body.isEmpty {
+                    Text(info.body.prefix(200) + (info.body.count > 200 ? "…" : ""))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Button("Open release page") {
+                    NSWorkspace.shared.open(info.pageURL)
+                }
+                .controlSize(.small)
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.orange.opacity(0.08))
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.orange, lineWidth: 1))
+            .cornerRadius(6)
+        case .error(let msg):
+            Text("Couldn't check: \(msg)").font(.caption).foregroundStyle(.red)
+        }
     }
 }
 

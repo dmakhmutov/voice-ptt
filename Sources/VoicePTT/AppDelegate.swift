@@ -64,6 +64,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
+
+        // Background update probe — at most once per 24h. If a newer release
+        // is found, surface it via the HUD + a notification.
+        Task { [weak self] in
+            await UpdateChecker.shared.checkIfStale()
+            if case .updateAvailable(let info) = UpdateChecker.shared.status {
+                await MainActor.run {
+                    self?.hud.show("⬇ Update available: v\(info.version)", duration: 6.0)
+                    self?.notify(
+                        title: "VoicePTT update v\(info.version)",
+                        body: "Open Settings → Updates to download."
+                    )
+                }
+            }
+        }
     }
 
     /// Records 3 seconds, transcribes, returns the recognized text.
