@@ -1,4 +1,5 @@
 import AppKit
+import UserNotifications
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -7,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let hotkey = HotkeyManager()
     private let recorder = AudioRecorder()
     private let transcriber = Transcriber()
+    private let hud = StatusHUD()
     private var isRecording = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -17,17 +19,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         configureHotkeyCallbacks()
         applySettings()
 
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        hud.show("VoicePTT loading model…", duration: 5.0)
+        notify(title: "VoicePTT", body: "Loading model…")
+
         Task { [weak self] in
             await self?.transcriber.load()
             await MainActor.run {
                 guard let self else { return }
                 if case .ready = self.transcriber.state {
                     self.menubar.update(state: .idle)
+                    let hk = Settings.shared.hotkey.displayString
+                    self.hud.show("🎙 VoicePTT ready — \(hk)")
+                    self.notify(title: "VoicePTT ready", body: "Press \(hk) to dictate")
                 } else if case .failed(let err) = self.transcriber.state {
                     self.menubar.update(state: .error(err.localizedDescription))
+                    self.hud.show("⚠️ VoicePTT failed: \(err.localizedDescription)", duration: 6.0)
+                    self.notify(title: "VoicePTT failed to start", body: err.localizedDescription)
                 }
             }
         }
+    }
+
+    private func notify(title: String, body: String) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        let req = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(req)
     }
 
     private func applySettings() {
