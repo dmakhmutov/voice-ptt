@@ -2,27 +2,27 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleName</key>
-    <string>VoicePTT</string>
-    <key>CFBundleDisplayName</key>
-    <string>VoicePTT</string>
-    <key>CFBundleIdentifier</key>
-    <string>local.voiceptt</string>
-    <key>CFBundleVersion</key>
-    <string>1</string>
-    <key>CFBundleShortVersionString</key>
-    <string>0.1</string>
-    <key>CFBundleExecutable</key>
-    <string>VoicePTT</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>LSMinimumSystemVersion</key>
-    <string>14.0</string>
-    <key>LSUIElement</key>
-    <true/>
-    <key>NSMicrophoneUsageDescription</key>
-    <string>VoicePTT records your voice to transcribe it into text on hotkey press.</string>
-    <key>NSAppleEventsUsageDescription</key>
-    <string>Used to paste the recognized text into the active window.</string>
+	<key>CFBundleDisplayName</key>
+	<string>VoicePTT</string>
+	<key>CFBundleExecutable</key>
+	<string>VoicePTT</string>
+	<key>CFBundleIdentifier</key>
+	<string>local.voiceptt</string>
+	<key>CFBundleName</key>
+	<string>VoicePTT</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.1.1</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Used to paste the recognized text into the active window.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>VoicePTT records your voice to transcribe it into text on hotkey press.</string>
 </dict>
 </plist>
