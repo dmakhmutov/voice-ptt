@@ -25,12 +25,31 @@ final class SettingsWindowController: NSObject {
         let win = NSWindow(contentViewController: host)
         win.title = "VoicePTT — Settings"
         win.styleMask = [.titled, .closable]
-        win.setContentSize(NSSize(width: 460, height: 760))
+        win.setContentSize(NSSize(width: 540, height: 720))
         win.center()
         win.isReleasedWhenClosed = false
         window = win
         win.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+}
+
+/// Wraps a section's content in the standard card chrome — thin border,
+/// rounded corners, optional orange highlight when the section needs the
+/// user's attention (e.g. missing permissions or pending update).
+extension View {
+    func cardSection(highlight: Color? = nil) -> some View {
+        self
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(highlight?.opacity(0.07) ?? Color(nsColor: .controlBackgroundColor).opacity(0.4))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(highlight ?? Color.secondary.opacity(0.25), lineWidth: 1)
+            )
     }
 }
 
@@ -43,54 +62,80 @@ private struct SettingsView: View {
     let onTestRecording: () async -> String
 
     var body: some View {
-        Form {
-            PermissionsSection(status: status)
-                .onAppear { status.refreshPermissions() }
-                .onReceive(Timer.publish(every: 2, on: .main, in: .common).autoconnect()) { _ in
-                    status.refreshPermissions()
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                PermissionsSection(status: status)
+                    .onAppear { status.refreshPermissions() }
+                    .onReceive(Timer.publish(every: 2, on: .main, in: .common).autoconnect()) { _ in
+                        status.refreshPermissions()
+                    }
+
+                BehaviorSection(
+                    mode: $mode,
+                    hotkey: $hotkey,
+                    launchAtLogin: $launchAtLogin,
+                    onChange: onChange
+                )
+
+                TestRecordingSection(onRun: onTestRecording)
+
+                UpdateSection()
+
+                ModelStorageSection()
+            }
+            .padding(20)
+        }
+    }
+}
+
+private struct BehaviorSection: View {
+    @Binding var mode: HotkeyMode
+    @Binding var hotkey: HotkeyBinding
+    @Binding var launchAtLogin: Bool
+    let onChange: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Behavior").font(.headline)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Mode").font(.subheadline).foregroundStyle(.secondary)
+                Picker("Mode", selection: $mode) {
+                    Text("Toggle — press to start, press again to stop").tag(HotkeyMode.toggle)
+                    Text("Hold — hold to record, release to stop").tag(HotkeyMode.hold)
                 }
-
-            Divider()
-
-            UpdateSection()
-
-            Divider()
-
-            Picker("Mode", selection: $mode) {
-                Text("Toggle (press — record, press — stop)").tag(HotkeyMode.toggle)
-                Text("Hold (hold — record, release — stop)").tag(HotkeyMode.hold)
-            }
-            .pickerStyle(.radioGroup)
-            .onChange(of: mode) { _, newValue in
-                Settings.shared.mode = newValue
-                onChange()
+                .pickerStyle(.radioGroup)
+                .labelsHidden()
+                .onChange(of: mode) { _, newValue in
+                    Settings.shared.mode = newValue
+                    onChange()
+                }
             }
 
-            HStack {
-                Text("Hotkey:")
+            HStack(alignment: .center, spacing: 10) {
+                Text("Hotkey").font(.subheadline).foregroundStyle(.secondary)
+                    .frame(width: 60, alignment: .leading)
                 HotkeyRecorderView(binding: $hotkey)
-                    .frame(minWidth: 180, minHeight: 28)
+                    .frame(width: 160, height: 30)
                     .onChange(of: hotkey) { _, newValue in
                         Settings.shared.hotkey = newValue
                         onChange()
                     }
+                Spacer()
             }
 
-            Divider()
-
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
                 Toggle("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, newValue in
                         Settings.shared.launchAtLogin = newValue
                         LoginItem.set(enabled: newValue)
                         onChange()
                     }
-
                 HStack(spacing: 6) {
                     Text("macOS may ask to approve the login item the first time.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Button("Open System Settings") {
+                        .font(.caption).foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Open Login Items") {
                         if let url = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension") {
                             NSWorkspace.shared.open(url)
                         }
@@ -98,17 +143,8 @@ private struct SettingsView: View {
                     .controlSize(.mini)
                 }
             }
-
-            Divider()
-
-            TestRecordingSection(onRun: onTestRecording)
-
-            Divider()
-
-            ModelStorageSection()
         }
-        .padding(20)
-        .frame(width: 460)
+        .cardSection()
     }
 }
 
@@ -124,6 +160,10 @@ private struct ModelStorageSection: View {
     }()
 
     var body: some View {
+        content.cardSection()
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("Model storage").font(.headline)
@@ -206,10 +246,16 @@ private struct UpdateSection: View {
 
             content
         }
+        .cardSection(highlight: hasUpdate ? .orange : nil)
     }
 
     private var isChecking: Bool {
         if case .checking = checker.status { return true }
+        return false
+    }
+
+    private var hasUpdate: Bool {
+        if case .updateAvailable = checker.status { return true }
         return false
     }
 
@@ -241,14 +287,8 @@ private struct UpdateSection: View {
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-
                 installActionRow(info: info)
             }
-            .padding(8)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.orange.opacity(0.08))
-            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.orange, lineWidth: 1))
-            .cornerRadius(6)
         case .error(let msg):
             Text("Couldn't check: \(msg)").font(.caption).foregroundStyle(.red)
         }
@@ -337,6 +377,7 @@ private struct TestRecordingSection: View {
                 .cornerRadius(6)
             }
         }
+        .cardSection()
     }
 
     private func run() {
@@ -370,6 +411,8 @@ final class HotkeyRecorderField: NSView {
     private let label = NSTextField(labelWithString: "")
     private var recording = false
     private var monitor: Any?
+
+    override var intrinsicContentSize: NSSize { NSSize(width: 160, height: 30) }
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)

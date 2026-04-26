@@ -6,8 +6,7 @@ struct PermissionsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Status")
-                .font(.headline)
+            Text("Status").font(.headline)
 
             statusRow(
                 label: "Microphone access",
@@ -34,15 +33,7 @@ struct PermissionsSection: View {
                 fixURL: nil
             )
         }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(status.allGreen ? Color.clear : Color.orange.opacity(0.08))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(status.allGreen ? Color.secondary.opacity(0.3) : Color.orange, lineWidth: 1)
-        )
+        .cardSection(highlight: status.allGreen ? nil : .orange)
     }
 
     @ViewBuilder
