@@ -37,7 +37,16 @@ Cursor red dot pulses while recording. Auto-stop after 120 seconds. Transcript p
 
 ## Performance
 
-End-to-end "release hotkey → text appears" — about **0.5 seconds** for a 5-second utterance on M2/M3. Cold start (model loads into ANE) is 1–3 s; warm starts are sub-second.
+Roughly the same as [Kesha Voice Kit](https://github.com/drakulavich/kesha-voice-kit), since both call into the same FluidAudio engine.
+
+| Phase | Duration |
+|---|---|
+| Cold start (first launch, model load) | 1–3 s |
+| Warm start | <1 s |
+| Recording | real-time |
+| Transcription of 5 s of speech (M2/M3) | ~300–400 ms |
+| Clipboard write + ⌘V dispatch | <5 ms |
+| **End-to-end (release hotkey → text appears)** | **~0.5 s** |
 
 ---
 
