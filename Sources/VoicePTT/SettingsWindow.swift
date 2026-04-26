@@ -151,7 +151,7 @@ private struct UpdateSection: View {
                 Text("Up to date — running v\(v).").font(.caption).foregroundStyle(.secondary)
             }
         case .updateAvailable(let info):
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.down.circle.fill").foregroundStyle(.orange)
                     Text("Update available: v\(info.version)").fontWeight(.medium)
@@ -162,10 +162,8 @@ private struct UpdateSection: View {
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                Button("Open release page") {
-                    NSWorkspace.shared.open(info.pageURL)
-                }
-                .controlSize(.small)
+
+                installActionRow(info: info)
             }
             .padding(8)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -174,6 +172,50 @@ private struct UpdateSection: View {
             .cornerRadius(6)
         case .error(let msg):
             Text("Couldn't check: \(msg)").font(.caption).foregroundStyle(.red)
+        }
+    }
+
+    @ViewBuilder
+    private func installActionRow(info: UpdateInfo) -> some View {
+        switch checker.installState {
+        case .idle:
+            HStack {
+                Button {
+                    Task { await checker.downloadAndInstall(info) }
+                } label: {
+                    Label("Download & install", systemImage: "square.and.arrow.down")
+                }
+                .controlSize(.small)
+                .disabled(info.assetURL == nil)
+
+                Button("Open release page") {
+                    NSWorkspace.shared.open(info.pageURL)
+                }
+                .controlSize(.small)
+            }
+        case .downloading:
+            HStack(spacing: 6) {
+                ProgressView().controlSize(.small)
+                Text("Downloading…").font(.caption).foregroundStyle(.secondary)
+            }
+        case .unzipping:
+            HStack(spacing: 6) {
+                ProgressView().controlSize(.small)
+                Text("Unpacking…").font(.caption).foregroundStyle(.secondary)
+            }
+        case .relaunching:
+            HStack(spacing: 6) {
+                ProgressView().controlSize(.small)
+                Text("Restarting with the new version…").font(.caption).foregroundStyle(.secondary)
+            }
+        case .failed(let msg):
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Install failed: \(msg)").font(.caption).foregroundStyle(.red)
+                Button("Try again") {
+                    checker.installState = .idle
+                }
+                .controlSize(.small)
+            }
         }
     }
 }
