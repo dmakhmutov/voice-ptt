@@ -46,66 +46,23 @@ If anything below the Quick install applies to you (you don't have Xcode install
 
 ---
 
-## Install
+## First-run details
 
-### Option 1 — Build from source (recommended for now, no prebuilt binaries yet)
+Quick install above covers the happy path. This section has the extra detail you might want.
 
-```sh
-git clone git@github.com:dmakhmutov/voice-ptt.git
-cd voice-ptt
-./build.sh
-```
-
-`build.sh` runs `swift build -c release`, packages the binary into `VoicePTT.app`, and applies an ad-hoc code signature.
-
-When it finishes:
-
-```sh
-open VoicePTT.app
-```
-
-### Option 2 — Install Command Line Tools first (if you don't have Xcode)
+**No Xcode? Install just the Command Line Tools** — full Xcode isn't needed, the CLT are enough:
 
 ```sh
 xcode-select --install
-# or, for a newer Swift toolchain (Swift 6, lets us use latest FluidAudio):
-softwareupdate --list                     # find "Command Line Tools for Xcode-16.x"
+# or, for a newer Swift toolchain (Swift 6, needed for latest FluidAudio):
 softwareupdate -i "Command Line Tools for Xcode-16.4"
 ```
 
-You don't need full Xcode — the Command Line Tools are enough.
+**Missed a permission dialog?** Open the app's Settings (menubar → Settings…). The Status panel at the top shows what's granted and gives you direct buttons to the right System Settings pane for each missing permission.
 
----
+**Where the model lives:** `~/Library/Application Support/FluidAudio/Models/`. ~2.5 GB, downloaded once on first launch from Hugging Face (1–5 minutes depending on connection). Subsequent launches reuse the cache and start in 2–5 seconds.
 
-## First-run setup
-
-When you launch `VoicePTT.app` for the first time, you'll need to grant **two** permissions and wait for **one** download.
-
-### 1. Microphone permission
-
-macOS will pop up a dialog the first time the app tries to access the mic. Click **Allow**.
-
-If you missed it: System Settings → Privacy & Security → **Microphone** → toggle on `VoicePTT`.
-
-### 2. Accessibility permission (required for autopaste)
-
-VoicePTT pastes the transcribed text by simulating `⌘V` keystrokes. macOS requires **Accessibility** permission for any app that synthesizes keystrokes.
-
-System Settings → Privacy & Security → **Accessibility** → click `+` → add `VoicePTT.app` → ensure the toggle is on.
-
-If you don't grant this, recording and transcription will still work, but the result won't be pasted automatically. You'll see it in the clipboard and can paste manually.
-
-### 3. Model download (~2.5 GB, one-time)
-
-On first launch, FluidAudio downloads the Parakeet TDT model from Hugging Face into:
-
-```
-~/Library/Application Support/FluidAudio/Models/
-```
-
-The menubar icon shows a `…` (ellipsis) while loading and switches to a 🎙 (mic) when ready. Depending on your connection this takes 1–5 minutes. Subsequent launches use the cached model and start in ~2–5 seconds.
-
-To watch progress:
+**Watching the model load progress** or any logs:
 
 ```sh
 log stream --predicate 'process == "VoicePTT"' --level debug
@@ -228,18 +185,23 @@ swift package show-dependencies
 ```
 voice-ptt/
 ├── Package.swift                      # SwiftPM manifest, FluidAudio dependency
-├── build.sh                           # Builds + packages .app + ad-hoc codesign
+├── build.sh                           # swift build → .app bundle → codesign
 ├── Resources/Info.plist               # Bundle metadata, permission strings
 └── Sources/VoicePTT/
     ├── EntryPoint.swift               # @main, NSApplication setup
     ├── AppDelegate.swift              # Wires hotkey → recorder → transcriber → paster
-    ├── Settings.swift                 # UserDefaults persistence (mode, hotkey)
+    ├── Settings.swift                 # UserDefaults: mode, hotkey, launchAtLogin
     ├── HotkeyManager.swift            # Carbon RegisterEventHotKey
-    ├── AudioRecorder.swift            # AVAudioEngine + AVAudioConverter (→ 16 kHz Float)
+    ├── AudioRecorder.swift            # AVAudioEngine → 16 kHz Float
     ├── Transcriber.swift              # FluidAudio AsrManager wrapper
     ├── Paster.swift                   # NSPasteboard + CGEvent ⌘V
+    ├── LoginItem.swift                # SMAppService.mainApp register/unregister
+    ├── AppStatus.swift                # Observed permission/model state
+    ├── PermissionsView.swift          # Status panel in Settings
     ├── MenuBarController.swift        # NSStatusItem, state-aware icon
-    └── SettingsWindow.swift           # SwiftUI Form with hotkey recorder
+    ├── StatusHUD.swift                # Floating "ready" panel on launch
+    ├── RecordingIndicator.swift       # Cursor-following red dot while recording
+    └── SettingsWindow.swift           # SwiftUI Form
 ```
 
 ### Useful one-liners
@@ -262,13 +224,20 @@ ls -la "$HOME/Library/Application Support/FluidAudio/Models/"
 
 ## Roadmap
 
+Done:
 - [x] Push-to-talk hotkey + paste-at-end transcription
-- [x] Settings window (configurable mode + hotkey)
-- [x] Menubar status indicator
-- [x] Stable code-signing identity (so Accessibility-grant survives rebuilds)
+- [x] Settings window with mode + hotkey + launch-at-login
+- [x] Menubar status indicator + launch HUD + system notification + cursor dot during recording
+- [x] Self-documenting Status panel in Settings (Mic / Accessibility / Notifications / Model)
+- [x] In-Settings "Test recording" button
+- [x] Auto-stop after 120 seconds (safety against stuck hotkey)
+- [x] Stable self-signed code-signing identity (Accessibility-grant survives rebuilds)
+- [x] Prebuilt `.app.zip` on GitHub Releases
+
+Not yet:
 - [ ] Toggle between Russian-only / English-only / auto-detect (small latency win)
-- [ ] Auto-launch at login
-- [ ] Notarized prebuilt `.dmg`
+- [ ] Notarized `.dmg` (would skip the right-click → Open Gatekeeper dance — needs Apple Developer account)
+- [ ] History of recent transcriptions
 
 > Live streaming transcription was attempted on the `feature/live-typing` branch
 > and rolled back. With FluidAudio 0.8.x's chunk-based emission the partials
