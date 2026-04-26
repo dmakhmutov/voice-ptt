@@ -33,16 +33,6 @@ Requires Swift 5.10+ (Command Line Tools 15+ — full Xcode not needed). For det
 - Apple Silicon (M1+) — Intel not supported, no Neural Engine
 - ~1 GB free disk for the model
 
-## Settings
-
-Opens on every user-initiated launch (Alfred, Spotlight, Finder); auto-launch via login item stays silent. `Esc` closes it.
-
-- **Status** — live state of permissions and model. Orange = needs attention, with deep-link buttons.
-- **Behavior** — Trigger (custom hotkey or hold Right ⌘ alone), mode (toggle / hold), Launch at login.
-- **Test recording** — 3-second mic test, shows the recognized text right there.
-- **Updates** — current version, check, one-click install.
-- **Model storage** — list of cached models with per-entry trash.
-
 ## Behavior
 
 Cursor red dot pulses while recording. Auto-stop after 120 seconds. Transcript pastes into the focused window via clipboard + synthesized ⌘V; previous clipboard is restored ~0.3 s later.
