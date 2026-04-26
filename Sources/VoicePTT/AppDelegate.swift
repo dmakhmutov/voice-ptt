@@ -20,6 +20,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var maxDurationTask: DispatchWorkItem?
 
     private var modelDownloadTimer: Timer?
+    private var modelLoadStartTime: Date?
+    private var lastCacheBytes: Int64 = 0
+    private var stableCacheTicks = 0
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         menubar.onOpenSettings = { [weak self] in self?.settingsWindow.show() }
@@ -38,8 +41,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Task { @MainActor in AppStatus.shared.refreshPermissions() }
         }
         // Persistent HUD until the model finishes loading. First-time
-        // download can take a couple of minutes, and a 5-second auto-
-        // dismiss left the user staring at nothing.
+        // download can take a couple of minutes; even on cached launches
+        // CoreML compilation for the Neural Engine costs ~15s on first
+        // boot. The progress timer below keeps the message honest.
         let isFirstDownload = !ModelStorage.shared.hasAnyCachedModel
         let loadingMessage = isFirstDownload
             ? "Downloading speech model…\nFirst time only, \(ModelInfo.sizeDescription)"
@@ -49,6 +53,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             title: "VoicePTT",
             body: isFirstDownload ? "Downloading model (\(ModelInfo.sizeDescription))…" : "Loading model…"
         )
+        startModelLoadProgress()
 
         if !UserDefaults.standard.bool(forKey: "app.firstLaunchCompleted") {
             UserDefaults.standard.set(true, forKey: "app.firstLaunchCompleted")
@@ -63,6 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             await self?.transcriber.load()
             await MainActor.run {
                 guard let self else { return }
+                self.stopModelLoadProgress()
                 if case .ready = self.transcriber.state {
                     self.menubar.update(state: .idle)
                     AppStatus.shared.modelLoaded = true
@@ -116,26 +122,63 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return text.isEmpty ? "(no speech detected)" : text
     }
 
-    /// Polls the model cache directory size and pushes a progress message
-    /// into the HUD. FluidAudio 0.8.x's `AsrModels.downloadAndLoad()` doesn't
-    /// expose real progress, so we approximate by watching how much arrived
-    /// on disk so far against an empirical full-download size.
-    private func startModelDownloadProgress() {
+    /// Polls the model cache directory size + elapsed time and pushes a
+    /// progress message into the HUD. FluidAudio 0.8.x's
+    /// `AsrModels.downloadAndLoad()` doesn't expose real progress, so we
+    /// detect the lifecycle phase from observable side-effects:
+    ///   1. *Setting up*    — cache empty, no bytes yet (just started).
+    ///   2. *Downloading*   — bytes growing on disk; show MB / total + ETA.
+    ///   3. *Preparing*     — cache size stable for several ticks (download
+    ///      done, FluidAudio is now compiling models for the Neural Engine,
+    ///      which can add ~15 seconds on first boot).
+    /// Always include elapsed time so the user knows things are moving.
+    private func startModelLoadProgress() {
         modelDownloadTimer?.invalidate()
-        modelDownloadTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+        modelLoadStartTime = Date()
+        lastCacheBytes = ModelStorage.shared.currentCacheBytes()
+        stableCacheTicks = 0
+        modelDownloadTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
-                guard let self else { return }
-                let bytes = ModelStorage.shared.currentCacheBytes()
-                let mb = Int(bytes / (1024 * 1024))
-                let percent = min(100, Int(Double(mb) * 100.0 / Double(ModelInfo.expectedSizeMB)))
-                self.hud.update("Downloading speech model — \(percent)% (\(mb)/\(ModelInfo.expectedSizeMB) MB)")
+                self?.tickModelLoadProgress()
             }
         }
     }
 
-    private func stopModelDownloadProgress() {
+    private func tickModelLoadProgress() {
+        guard let started = modelLoadStartTime else { return }
+        let elapsed = Int(Date().timeIntervalSince(started))
+        let timeStr = String(format: "%d:%02d", elapsed / 60, elapsed % 60)
+
+        let bytes = ModelStorage.shared.currentCacheBytes()
+        let mb = Int(bytes / (1024 * 1024))
+        let expectedMB = Int(ModelInfo.expectedSizeMB)
+
+        if bytes == lastCacheBytes && mb >= 50 {
+            stableCacheTicks += 1
+        } else {
+            stableCacheTicks = 0
+        }
+        lastCacheBytes = bytes
+
+        // Cache stable for 3+ seconds OR almost-full → assume download done,
+        // CoreML is compiling.
+        let downloadDone = stableCacheTicks >= 3 || mb >= expectedMB - 20
+
+        let message: String
+        if mb < 10 {
+            message = "Setting up speech model… (\(timeStr))"
+        } else if downloadDone {
+            message = "Preparing model for Neural Engine… (\(timeStr))"
+        } else {
+            message = "Downloading model — \(mb)/\(expectedMB) MB (\(timeStr))"
+        }
+        hud.update(message)
+    }
+
+    private func stopModelLoadProgress() {
         modelDownloadTimer?.invalidate()
         modelDownloadTimer = nil
+        modelLoadStartTime = nil
     }
 
     private func notify(title: String, body: String) {
