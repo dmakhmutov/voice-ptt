@@ -1,6 +1,14 @@
 import AVFoundation
 import Foundation
 
+/// Records mic audio on demand and resamples to 16 kHz mono Float32.
+///
+/// We allocate the AVAudioEngine **only while recording** — the moment a
+/// long-lived `AVAudioEngine` instance exists in our process, macOS routes
+/// the AirPods media-remote button (Play/Pause) into our audio session
+/// and the user can't pause whatever video they're watching. Creating
+/// and tearing down the engine per session keeps the AirPods button free
+/// while we're idle.
 final class AudioRecorder {
     enum RecorderError: Error {
         case formatUnavailable
@@ -8,18 +16,20 @@ final class AudioRecorder {
         case engineStartFailed(Error)
     }
 
-    private let engine = AVAudioEngine()
     private let targetSampleRate: Double = 16_000
+    private let queue = DispatchQueue(label: "voiceptt.audio")
+
+    private var engine: AVAudioEngine?
     private var samples: [Float] = []
     private var converter: AVAudioConverter?
     private var targetFormat: AVAudioFormat?
     private var isRunning = false
-    private let queue = DispatchQueue(label: "voiceptt.audio")
 
     func start() throws {
         guard !isRunning else { return }
         samples.removeAll(keepingCapacity: true)
 
+        let engine = AVAudioEngine()
         let input = engine.inputNode
         let inputFormat = input.outputFormat(forBus: 0)
 
@@ -36,7 +46,6 @@ final class AudioRecorder {
         }
         converter = conv
 
-        input.removeTap(onBus: 0)
         input.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { [weak self] buffer, _ in
             self?.process(buffer: buffer)
         }
@@ -44,6 +53,7 @@ final class AudioRecorder {
         engine.prepare()
         do {
             try engine.start()
+            self.engine = engine
             isRunning = true
         } catch {
             throw RecorderError.engineStartFailed(error)
@@ -51,9 +61,15 @@ final class AudioRecorder {
     }
 
     func stop() -> [Float] {
-        guard isRunning else { return [] }
+        guard isRunning, let engine else { return [] }
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()
+        // Drop the engine entirely so the audio device is fully released.
+        // Otherwise AirPods stay in headset-mode-ish state and their
+        // Play/Pause button keeps routing into our (idle) session.
+        self.engine = nil
+        converter = nil
+        targetFormat = nil
         isRunning = false
         return queue.sync { samples }
     }
