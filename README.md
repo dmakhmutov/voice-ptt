@@ -21,8 +21,9 @@ Future updates: **Settings → Updates → Check now → Download & install**.
 git clone git@github.com:dmakhmutov/voice-ptt.git
 cd voice-ptt
 ./build.sh
-open VoicePTT.app
 ```
+
+`build.sh` builds, codesigns, and launches the app for you.
 
 Requires Swift 5.10+ (Command Line Tools 15+ — full Xcode not needed). For details, codesigning setup, and the dev workflow see [DEVELOPMENT.md](DEVELOPMENT.md).
 

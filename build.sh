@@ -30,15 +30,15 @@ fi
 
 echo "==> done: $APP"
 
-# Auto-restart the running app so the new build is live without a manual
-# `killall && open` dance. Skipped when called from release.sh (we want
-# the old version to stay up so 'Download & install' has something to
-# update from), or by setting NO_RESTART=1.
-if [ -z "${NO_RESTART:-}" ] && pgrep -f "$APP/Contents/MacOS/$BIN_NAME" >/dev/null 2>&1; then
-    echo "==> restarting running app"
-    killall -9 "$BIN_NAME" 2>/dev/null || true
-    sleep 0.4
+# Launch (or relaunch) the app after a successful build. Skipped when
+# called from release.sh — we want the old version to stay up so the
+# in-app 'Download & install' has something to update from. Override
+# manually with NO_RESTART=1.
+if [ -z "${NO_RESTART:-}" ]; then
+    if pgrep -f "$APP/Contents/MacOS/$BIN_NAME" >/dev/null 2>&1; then
+        echo "==> restarting running app"
+        killall -9 "$BIN_NAME" 2>/dev/null || true
+        sleep 0.4
+    fi
     open "$APP"
-else
-    echo "    open $APP   # to launch"
 fi
