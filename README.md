@@ -33,10 +33,6 @@ Requires Swift 5.10+ (Command Line Tools 15+ — full Xcode not needed). For det
 - Apple Silicon (M1+) — Intel not supported, no Neural Engine
 - ~1 GB free disk for the model
 
-## Behavior
-
-Cursor red dot pulses while recording. Auto-stop after 120 seconds. Transcript pastes into the focused window via clipboard + synthesized ⌘V; previous clipboard is restored ~0.3 s later.
-
 ## Performance
 
 Roughly the same as [Kesha Voice Kit](https://github.com/drakulavich/kesha-voice-kit), since both call into the same FluidAudio engine.
