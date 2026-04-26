@@ -172,6 +172,8 @@ Roughly the same as [Kesha Voice Kit](https://github.com/drakulavich/kesha-voice
 
 **`build.sh` fails with "incompatible tools version (6.0.0)".** Your Swift toolchain is older than 6.0 and you're trying to use a recent FluidAudio. The `Package.swift` in this repo pins to FluidAudio `0.7.0..<0.9.0` to stay Swift 5.10-compatible. If you want the latest FluidAudio (0.12+), upgrade to Command Line Tools 16+ (`softwareupdate -i "Command Line Tools for Xcode-16.4"`) and bump the version in `Package.swift`.
 
+**Have to re-add the app to Accessibility every time I rebuild.** macOS ties the Accessibility grant to the app's code signature. With ad-hoc signing each build gets a different signature, so the grant doesn't apply. Fix once: create a self-signed code-signing certificate via Keychain Access (`Certificate Assistant → Create a Certificate…`, name `VoicePTT Local`, type `Code Signing`, leave the override-defaults checkbox off). `build.sh` auto-detects this cert and uses it; subsequent rebuilds keep the same signature and the Accessibility grant sticks.
+
 **`xcrun: error: unable to lookup item 'PlatformPath'`.** Cosmetic warning from `swift build`. The build still succeeds. Caused by the Command Line Tools not exposing the macOS platform path that XCTest expects. Safe to ignore.
 
 **Recorded audio sounds clipped or muffled.** AVAudioEngine uses your **default input device**. Check System Settings → Sound → Input.
@@ -239,10 +241,17 @@ ls -la "$HOME/Library/Application Support/FluidAudio/Models/"
 - [x] Push-to-talk hotkey + paste-at-end transcription
 - [x] Settings window (configurable mode + hotkey)
 - [x] Menubar status indicator
-- [ ] Live streaming transcription (text appears as you speak — branch `feature/live-typing`)
+- [x] Stable code-signing identity (so Accessibility-grant survives rebuilds)
 - [ ] Toggle between Russian-only / English-only / auto-detect (small latency win)
 - [ ] Auto-launch at login
 - [ ] Notarized prebuilt `.dmg`
+
+> Live streaming transcription was attempted on the `feature/live-typing` branch
+> and rolled back. With FluidAudio 0.8.x's chunk-based emission the partials
+> arrive in big batches at chunk boundaries, and synthesizing CGEvents while
+> the user is still holding modifiers (in hold mode) conflicts with the active
+> app. Net UX wasn't better than paste-at-end. May revisit once FluidAudio
+> exposes a finer-grained hypothesis stream.
 
 ---
 

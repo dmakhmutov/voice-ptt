@@ -18,8 +18,14 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_PATH" "$APP/Contents/MacOS/$BIN_NAME"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 
-echo "==> ad-hoc codesign"
-codesign --force --deep --sign - "$APP"
+SIGN_IDENTITY="${SIGN_IDENTITY:-VoicePTT Local}"
+if security find-certificate -c "$SIGN_IDENTITY" >/dev/null 2>&1; then
+    echo "==> codesign with stable identity '$SIGN_IDENTITY'"
+    codesign --force --deep --sign "$SIGN_IDENTITY" "$APP"
+else
+    echo "==> ad-hoc codesign (no '$SIGN_IDENTITY' cert in keychain)"
+    codesign --force --deep --sign - "$APP"
+fi
 
 echo "==> done: $APP"
 echo "    open $APP   # to launch"
