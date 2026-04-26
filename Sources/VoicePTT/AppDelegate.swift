@@ -12,6 +12,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let recordingIndicator = RecordingIndicator()
     private var isRecording = false
 
+    /// Hard cap on recording duration. Protects against a stuck hotkey or a
+    /// user who walked away with the app still recording — buffers grow
+    /// linearly with audio length and FluidAudio's batch transcribe slows
+    /// down on very long inputs.
+    private static let maxRecordingDuration: TimeInterval = 120
+    private var maxDurationTask: DispatchWorkItem?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         menubar.onOpenSettings = { [weak self] in self?.settingsWindow.show() }
         menubar.onQuit = { NSApp.terminate(nil) }
@@ -125,6 +132,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             isRecording = true
             menubar.update(state: .recording)
             recordingIndicator.show()
+            scheduleMaxDurationTimeout()
         } catch {
             NSLog("VoicePTT: recorder start failed: \(error)")
             menubar.update(state: .error("\(error)"))
@@ -132,6 +140,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func finishRecording() {
+        cancelMaxDurationTimeout()
         let samples = recorder.stop()
         isRecording = false
         recordingIndicator.hide()
@@ -147,5 +156,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.menubar.update(state: .idle)
             }
         }
+    }
+
+    private func scheduleMaxDurationTimeout() {
+        cancelMaxDurationTimeout()
+        let task = DispatchWorkItem { [weak self] in
+            guard let self, self.isRecording else { return }
+            let secs = Int(Self.maxRecordingDuration)
+            NSLog("VoicePTT: hit max recording duration (\(secs)s), auto-stopping")
+            self.hud.show("⏱ Auto-stopped after \(secs)s", duration: 4.0)
+            self.finishRecording()
+        }
+        maxDurationTask = task
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.maxRecordingDuration, execute: task)
+    }
+
+    private func cancelMaxDurationTimeout() {
+        maxDurationTask?.cancel()
+        maxDurationTask = nil
     }
 }
