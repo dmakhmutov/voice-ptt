@@ -59,7 +59,10 @@ final class MenuBarController {
             statusMenuItem.title = "Ready"
         case .recording:
             button.image = NSImage(systemSymbolName: "mic.fill", accessibilityDescription: "Recording")
-            button.title = " REC"
+            // No 'REC' text — macOS already shows its own orange mic-in-use
+            // indicator next to our icon, and the cursor red dot covers the
+            // 'is recording right now' signal. Doubling up looks busy.
+            button.title = ""
             statusMenuItem.title = "● Recording…"
         case .transcribing:
             button.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "Transcribing")
