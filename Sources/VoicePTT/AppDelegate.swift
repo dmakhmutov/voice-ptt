@@ -20,10 +20,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         configureHotkeyCallbacks()
         applySettings()
         LoginItem.sync(with: Settings.shared.launchAtLogin)
+        AppStatus.shared.refreshPermissions()
 
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in
+            Task { @MainActor in AppStatus.shared.refreshPermissions() }
+        }
         hud.show("VoicePTT loading model…", duration: 5.0)
         notify(title: "VoicePTT", body: "Loading model…")
+
+        if !UserDefaults.standard.bool(forKey: "app.firstLaunchCompleted") {
+            UserDefaults.standard.set(true, forKey: "app.firstLaunchCompleted")
+            // Open Settings so the user sees the Status panel and can grant
+            // any missing permissions without hunting through the menubar.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.settingsWindow.show()
+            }
+        }
 
         Task { [weak self] in
             await self?.transcriber.load()
@@ -31,6 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 guard let self else { return }
                 if case .ready = self.transcriber.state {
                     self.menubar.update(state: .idle)
+                    AppStatus.shared.modelLoaded = true
                     let hk = Settings.shared.hotkey.displayString
                     self.hud.show("🎙 VoicePTT ready — \(hk)")
                     self.notify(title: "VoicePTT ready", body: "Press \(hk) to dictate")

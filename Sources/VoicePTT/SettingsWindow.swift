@@ -18,7 +18,7 @@ final class SettingsWindowController: NSObject {
         let win = NSWindow(contentViewController: host)
         win.title = "VoicePTT — Settings"
         win.styleMask = [.titled, .closable]
-        win.setContentSize(NSSize(width: 420, height: 280))
+        win.setContentSize(NSSize(width: 460, height: 540))
         win.center()
         win.isReleasedWhenClosed = false
         window = win
@@ -31,10 +31,19 @@ private struct SettingsView: View {
     @State private var mode: HotkeyMode = Settings.shared.mode
     @State private var hotkey: HotkeyBinding = Settings.shared.hotkey
     @State private var launchAtLogin: Bool = Settings.shared.launchAtLogin
+    @ObservedObject private var status = AppStatus.shared
     let onChange: () -> Void
 
     var body: some View {
         Form {
+            PermissionsSection(status: status)
+                .onAppear { status.refreshPermissions() }
+                .onReceive(Timer.publish(every: 2, on: .main, in: .common).autoconnect()) { _ in
+                    status.refreshPermissions()
+                }
+
+            Divider()
+
             Picker("Mode", selection: $mode) {
                 Text("Toggle (press — record, press — stop)").tag(HotkeyMode.toggle)
                 Text("Hold (hold — record, release — stop)").tag(HotkeyMode.hold)
@@ -81,7 +90,7 @@ private struct SettingsView: View {
             }
         }
         .padding(20)
-        .frame(width: 420)
+        .frame(width: 460)
     }
 }
 
