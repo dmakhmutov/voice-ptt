@@ -18,7 +18,7 @@ final class SettingsWindowController: NSObject {
         let win = NSWindow(contentViewController: host)
         win.title = "VoicePTT — Settings"
         win.styleMask = [.titled, .closable]
-        win.setContentSize(NSSize(width: 380, height: 200))
+        win.setContentSize(NSSize(width: 420, height: 280))
         win.center()
         win.isReleasedWhenClosed = false
         window = win
@@ -59,15 +59,29 @@ private struct SettingsView: View {
 
             Divider()
 
-            Toggle("Launch at login", isOn: $launchAtLogin)
-                .onChange(of: launchAtLogin) { _, newValue in
-                    Settings.shared.launchAtLogin = newValue
-                    LoginItem.set(enabled: newValue)
-                    onChange()
+            VStack(alignment: .leading, spacing: 6) {
+                Toggle("Launch at login", isOn: $launchAtLogin)
+                    .onChange(of: launchAtLogin) { _, newValue in
+                        Settings.shared.launchAtLogin = newValue
+                        LoginItem.set(enabled: newValue)
+                        onChange()
+                    }
+
+                Text("First time you enable this, macOS may show a notification asking to approve the login item. If it doesn't appear in the list below, open System Settings and toggle VoicePTT on manually.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Button("Open Login Items in System Settings") {
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension") {
+                        NSWorkspace.shared.open(url)
+                    }
                 }
+                .controlSize(.small)
+            }
         }
         .padding(20)
-        .frame(width: 380)
+        .frame(width: 420)
     }
 }
 
