@@ -197,11 +197,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func applySettings() {
-        hotkey.register(Settings.shared.hotkey)
-        if Settings.shared.rightCommandPTT {
-            rightCmdMonitor.enable()
-        } else {
+        switch Settings.shared.triggerKind {
+        case .hotkey:
             rightCmdMonitor.disable()
+            hotkey.register(Settings.shared.hotkey)
+        case .rightCommand:
+            hotkey.unregister()
+            rightCmdMonitor.enable()
         }
         menubar.refreshSettingsLabels()
     }

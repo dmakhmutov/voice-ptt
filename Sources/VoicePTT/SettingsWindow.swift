@@ -63,7 +63,7 @@ private struct SettingsView: View {
     @State private var mode: HotkeyMode = Settings.shared.mode
     @State private var hotkey: HotkeyBinding = Settings.shared.hotkey
     @State private var launchAtLogin: Bool = Settings.shared.launchAtLogin
-    @State private var rightCommandPTT: Bool = Settings.shared.rightCommandPTT
+    @State private var triggerKind: TriggerKind = Settings.shared.triggerKind
     @ObservedObject private var status = AppStatus.shared
     let onChange: () -> Void
     let onTestRecording: () async -> String
@@ -81,7 +81,7 @@ private struct SettingsView: View {
                     mode: $mode,
                     hotkey: $hotkey,
                     launchAtLogin: $launchAtLogin,
-                    rightCommandPTT: $rightCommandPTT,
+                    triggerKind: $triggerKind,
                     onChange: onChange
                 )
 
@@ -100,7 +100,7 @@ private struct BehaviorSection: View {
     @Binding var mode: HotkeyMode
     @Binding var hotkey: HotkeyBinding
     @Binding var launchAtLogin: Bool
-    @Binding var rightCommandPTT: Bool
+    @Binding var triggerKind: TriggerKind
     let onChange: () -> Void
 
     var body: some View {
@@ -108,38 +108,47 @@ private struct BehaviorSection: View {
             Text("Behavior").font(.headline)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Mode").font(.subheadline).foregroundStyle(.secondary)
-                Picker("Mode", selection: $mode) {
-                    Text("Toggle — press to start, press again to stop").tag(HotkeyMode.toggle)
-                    Text("Hold — hold to record, release to stop").tag(HotkeyMode.hold)
+                Text("Trigger").font(.subheadline).foregroundStyle(.secondary)
+                Picker("Trigger", selection: $triggerKind) {
+                    Text("Custom hotkey").tag(TriggerKind.hotkey)
+                    Text("Right ⌘ (hold to record)").tag(TriggerKind.rightCommand)
                 }
                 .pickerStyle(.radioGroup)
                 .labelsHidden()
-                .onChange(of: mode) { _, newValue in
-                    Settings.shared.mode = newValue
+                .onChange(of: triggerKind) { _, newValue in
+                    Settings.shared.triggerKind = newValue
                     onChange()
                 }
             }
 
-            HStack(alignment: .center, spacing: 10) {
-                Text("Hotkey").font(.subheadline).foregroundStyle(.secondary)
-                    .frame(width: 60, alignment: .leading)
-                HotkeyRecorderView(binding: $hotkey)
-                    .frame(width: 160, height: 30)
-                    .onChange(of: hotkey) { _, newValue in
-                        Settings.shared.hotkey = newValue
+            if triggerKind == .hotkey {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Mode").font(.subheadline).foregroundStyle(.secondary)
+                    Picker("Mode", selection: $mode) {
+                        Text("Toggle — press to start, press again to stop").tag(HotkeyMode.toggle)
+                        Text("Hold — hold to record, release to stop").tag(HotkeyMode.hold)
+                    }
+                    .pickerStyle(.radioGroup)
+                    .labelsHidden()
+                    .onChange(of: mode) { _, newValue in
+                        Settings.shared.mode = newValue
                         onChange()
                     }
-                Spacer()
-            }
+                }
 
-            VStack(alignment: .leading, spacing: 4) {
-                Toggle("Right ⌘ for push-to-talk", isOn: $rightCommandPTT)
-                    .onChange(of: rightCommandPTT) { _, newValue in
-                        Settings.shared.rightCommandPTT = newValue
-                        onChange()
-                    }
-                Text("Hold Right ⌘ alone (no other keys) to record. Existing hotkey still works.")
+                HStack(alignment: .center, spacing: 10) {
+                    Text("Hotkey").font(.subheadline).foregroundStyle(.secondary)
+                        .frame(width: 60, alignment: .leading)
+                    HotkeyRecorderView(binding: $hotkey)
+                        .frame(width: 160, height: 30)
+                        .onChange(of: hotkey) { _, newValue in
+                            Settings.shared.hotkey = newValue
+                            onChange()
+                        }
+                    Spacer()
+                }
+            } else {
+                Text("Hold Right ⌘ alone (no other modifiers). Releases when you let go. Use this when you don't want to learn a hotkey.")
                     .font(.caption).foregroundStyle(.secondary)
             }
 

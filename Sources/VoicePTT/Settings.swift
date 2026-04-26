@@ -6,6 +6,14 @@ enum HotkeyMode: String {
     case hold
 }
 
+/// What starts/stops a recording session.
+enum TriggerKind: String {
+    /// User-configured Carbon hotkey (combo, e.g. ⌘⇧Space). Honors `HotkeyMode`.
+    case hotkey
+    /// Right Command key alone (no other modifiers). Always hold-to-talk.
+    case rightCommand
+}
+
 struct HotkeyBinding: Equatable {
     var keyCode: UInt32
     var modifiers: UInt32
@@ -35,7 +43,9 @@ final class Settings {
         static let keyCode = "hotkey.keyCode"
         static let modifiers = "hotkey.modifiers"
         static let launchAtLogin = "app.launchAtLogin"
-        static let rightCommandPTT = "hotkey.rightCommandPTT"
+        static let triggerKind = "trigger.kind"
+        // Legacy, kept for one-time migration. Remove after a few releases.
+        static let legacyRightCommandPTT = "hotkey.rightCommandPTT"
     }
 
     var mode: HotkeyMode {
@@ -62,12 +72,25 @@ final class Settings {
         set { defaults.set(newValue, forKey: Key.launchAtLogin) }
     }
 
-    /// Hold the **Right Command key alone** (no other modifiers) as an
-    /// additional push-to-talk trigger. Coexists with the configured hotkey;
-    /// off by default.
-    var rightCommandPTT: Bool {
-        get { defaults.bool(forKey: Key.rightCommandPTT) }
-        set { defaults.set(newValue, forKey: Key.rightCommandPTT) }
+    /// What starts/stops a recording session. The two modes are mutually
+    /// exclusive — picking `rightCommand` unregisters the Carbon hotkey.
+    var triggerKind: TriggerKind {
+        get {
+            if let raw = defaults.string(forKey: Key.triggerKind),
+               let kind = TriggerKind(rawValue: raw) {
+                return kind
+            }
+            // Migration from the v0.2.3 `rightCommandPTT` boolean. If set,
+            // promote it to the new picker value.
+            if defaults.bool(forKey: Key.legacyRightCommandPTT) {
+                let migrated: TriggerKind = .rightCommand
+                defaults.set(migrated.rawValue, forKey: Key.triggerKind)
+                defaults.removeObject(forKey: Key.legacyRightCommandPTT)
+                return migrated
+            }
+            return .hotkey
+        }
+        set { defaults.set(newValue.rawValue, forKey: Key.triggerKind) }
     }
 }
 
