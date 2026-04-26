@@ -52,6 +52,10 @@ private struct SettingsView: View {
 
             Divider()
 
+            UpdateSection()
+
+            Divider()
+
             Picker("Mode", selection: $mode) {
                 Text("Toggle (press — record, press — stop)").tag(HotkeyMode.toggle)
                 Text("Hold (hold — record, release — stop)").tag(HotkeyMode.hold)
@@ -61,8 +65,6 @@ private struct SettingsView: View {
                 Settings.shared.mode = newValue
                 onChange()
             }
-
-            Divider()
 
             HStack {
                 Text("Hotkey:")
@@ -84,26 +86,22 @@ private struct SettingsView: View {
                         onChange()
                     }
 
-                Text("First time you enable this, macOS may show a notification asking to approve the login item. If it doesn't appear in the list below, open System Settings and toggle VoicePTT on manually.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Button("Open Login Items in System Settings") {
-                    if let url = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension") {
-                        NSWorkspace.shared.open(url)
+                HStack(spacing: 6) {
+                    Text("macOS may ask to approve the login item the first time.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Button("Open System Settings") {
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension") {
+                            NSWorkspace.shared.open(url)
+                        }
                     }
+                    .controlSize(.mini)
                 }
-                .controlSize(.small)
             }
 
             Divider()
 
             TestRecordingSection(onRun: onTestRecording)
-
-            Divider()
-
-            UpdateSection()
 
             Divider()
 
@@ -323,7 +321,7 @@ private struct TestRecordingSection: View {
             }
 
             if result.isEmpty {
-                Text("Click the button, then speak any phrase. The recognized text appears below — handy for verifying the mic + model + permissions all work.")
+                Text("Records 3 seconds and shows what was recognized. Quick check that mic + model + permissions are wired up.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
