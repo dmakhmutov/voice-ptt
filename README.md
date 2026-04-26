@@ -1,23 +1,25 @@
 # VoicePTT
 
-Push-to-talk dictation for macOS. Press a hotkey, speak, release — your speech is transcribed and pasted into the active window.
+Push-to-talk dictation for macOS. Press a hotkey (or hold Right ⌘), speak, release — your speech is transcribed and pasted into the active window.
 
 Runs entirely **on-device** on the Apple Neural Engine. No network calls, no API keys, no telemetry. Built on top of [FluidAudio](https://github.com/FluidInference/FluidAudio) (NVIDIA Parakeet TDT, CoreML).
 
-Tested with English and Russian. The underlying Parakeet TDT v2/v3 models support 25 European languages.
+Tested with English and Russian. The underlying Parakeet TDT v3 model supports 25 European languages.
 
 ---
 
 ## Quick install
 
-### Option A — Download the prebuilt app (recommended for users)
+### Option A — Download the prebuilt app (recommended)
 
 1. Grab `VoicePTT-X.Y.zip` from the **[latest release](https://github.com/dmakhmutov/voice-ptt/releases/latest)**
 2. Unzip → drag `VoicePTT.app` to `/Applications` (or anywhere you like)
 3. **Right-click `VoicePTT.app` → Open** the first time. macOS shows a "developer cannot be verified" warning because the app uses a self-signed certificate — click **Open** in the dialog. Subsequent launches work normally.
-4. The Settings window opens automatically — grant **Microphone** and **Accessibility** (the panel has direct buttons), wait for the model to download (~500 MB, one-time), press `⌘⇧Space` and dictate
+4. The Settings window opens automatically — grant **Microphone** and **Accessibility** (the Status panel has direct buttons for each), wait for the model to download (~500 MB, one-time), press `⌘⇧Space` and dictate.
 
-### Option B — Build from source (for contributors)
+Once installed, future updates ship in-app: **Settings → Updates → Check now → Download & install** does everything for you (download, swap, relaunch on the new version).
+
+### Option B — Build from source
 
 ```sh
 git clone git@github.com:dmakhmutov/voice-ptt.git
@@ -28,7 +30,7 @@ open VoicePTT.app
 
 > *(Optional, recommended)* Before the first build, create a self-signed code-signing cert named `VoicePTT Local` once via **Keychain Access → Certificate Assistant → Create a Certificate…** → `Code Signing` type. `build.sh` auto-uses it; without it, you'll have to re-grant Accessibility after every rebuild.
 
-If anything below the Quick install applies to you (you don't have Xcode installed, you hit a build error, you need to know what's actually happening), keep reading.
+`build.sh` also auto-restarts the app if it's already running, so the dev loop is `edit → ./build.sh → done`.
 
 ---
 
@@ -40,17 +42,46 @@ If anything below the Quick install applies to you (you don't have Xcode install
 | Hardware | Apple Silicon (M1+) | M2/M3/M4 with ANE |
 | Disk space | ~1 GB free (model is ~500 MB) | — |
 | RAM | 8 GB | 16 GB |
-| Toolchain | Swift 5.10 (Xcode 15.x or Command Line Tools 15.x) | Swift 6.0+ for latest FluidAudio |
+| Toolchain (build from source only) | Swift 5.10 (Xcode 15.x or Command Line Tools 15.x) | Swift 6.0+ for latest FluidAudio |
 
 > Intel Macs are not supported — there is no Apple Neural Engine, and FluidAudio's CoreML models target Apple Silicon.
 
 ---
 
+## Usage
+
+### Triggers (pick one in Settings → Behavior)
+
+| Trigger | How |
+|---|---|
+| **Custom hotkey** (default `⌘⇧Space`) | Configurable via the hotkey recorder field. Must include at least one modifier — Carbon's hotkey API doesn't allow plain keys. Mode: *toggle* (press to start, press again to stop) or *hold* (hold to record, release to stop). |
+| **Right ⌘** | Hold Right ⌘ alone (no other modifiers — `Right ⌘+C` still copies). Always hold-style. Useful if you don't want to remember a combo. |
+
+### What happens when you record
+
+1. **Cursor red dot** pulses near your pointer while recording — distinct from macOS's own orange mic-in-use indicator in the menubar.
+2. **Auto-stop after 120 seconds** if you forget you're recording (e.g., stuck hotkey). Whatever was captured still gets transcribed and pasted.
+3. On stop, the transcript is **pasted into the focused window** via clipboard + synthesized `⌘V`. The previous clipboard contents are restored ~0.3 s later.
+
+### Settings window
+
+Opens automatically on every user-initiated launch (Finder double-click, Spotlight, Alfred, `open VoicePTT.app`). Auto-launch via login item stays silent. Press `Esc` to close.
+
+Sections, top to bottom:
+
+- **Status** — green check / orange warning for Microphone, Accessibility, and the speech model. Each missing permission has an "Open Settings" button that deep-links to the right System Settings pane.
+- **Behavior** — Trigger picker, hotkey recorder, mode toggle, Launch at login.
+- **Test recording** — record 3 seconds and see what's transcribed, without leaving Settings. Quick check that mic + model + permissions are wired up.
+- **Updates** — current version, "Check now" button, and (when applicable) "Download & install" to swap in the latest release with one click.
+- **Model storage** — list of cached model directories with sizes; per-entry trash button or "Clear all" to free disk space. The active model re-downloads on next launch.
+
+---
+
 ## First-run details
 
-Quick install above covers the happy path. This section has the extra detail you might want.
+The Quick install above covers the happy path. This section has the extra detail you might want.
 
-**No Xcode? Install just the Command Line Tools** — full Xcode isn't needed, the CLT are enough:
+**No Xcode? Install just the Command Line Tools** — full Xcode isn't needed:
 
 ```sh
 xcode-select --install
@@ -58,60 +89,35 @@ xcode-select --install
 softwareupdate -i "Command Line Tools for Xcode-16.4"
 ```
 
-**Missed a permission dialog?** Open the app's Settings (menubar → Settings…). The Status panel at the top shows what's granted and gives you direct buttons to the right System Settings pane for each missing permission.
+**Missed a permission dialog?** Open Settings (menubar → Settings… or relaunch the app). The Status panel shows what's granted and gives direct "Open Settings" buttons.
 
 **Where the model lives:** `~/Library/Application Support/FluidAudio/Models/`. ~500 MB (CoreML-quantized Parakeet TDT), downloaded once on first launch from Hugging Face. Subsequent launches reuse the cache and start in 2–5 seconds.
 
-**Watching the model load progress** or any logs:
+**Watching the model load progress** — the floating HUD plate at top-right shows phases ("Setting up… → Downloading model — N/500 MB → Preparing model for Neural Engine… → Ready") with elapsed time. For verbose logs:
 
 ```sh
 log stream --predicate 'process == "VoicePTT"' --level debug
 ```
-
-Or open **Console.app** and filter by `VoicePTT`.
-
----
-
-## Usage
-
-### Default behavior
-
-- **Hotkey**: `⌘⇧Space` (Cmd+Shift+Space)
-- **Mode**: toggle — press once to start recording, press again to stop and transcribe
-- **Output**: transcribed text is pasted into whatever app/field has focus
-
-### Modes
-
-| Mode | Behavior |
-|---|---|
-| **Toggle** | Press hotkey → recording starts. Press again → recording stops and text is pasted. |
-| **Hold** | Hold hotkey → recording. Release → text is pasted. |
-
-Choose in menubar → Settings…
-
-### Changing the hotkey
-
-Menubar → **Settings…** → click the hotkey field → press the new combination.
-
-The hotkey must include at least one modifier (`⌘`, `⌥`, `⌃`, `⇧`) — single-key shortcuts aren't supported by the Carbon hotkey API.
 
 ---
 
 ## How it works
 
 ```
+┌──────────────────┐         ┌──────────────────┐
+│ Carbon HotKey    │   OR    │ Right ⌘ Monitor   │
+│ (combo)          │         │ (modifier-only)  │
+└────────┬─────────┘         └────────┬─────────┘
+         │ keyDown / keyUp / press / release
+         ▼
 ┌──────────────────┐
-│ Carbon HotKey    │  Global ⌘⇧Space listener
-└────────┬─────────┘
-         │ keyDown / keyUp
-┌────────▼─────────┐
 │ AppDelegate      │  State machine: idle → recording → transcribing → idle
 └────────┬─────────┘
          │ start/stop
 ┌────────▼─────────┐
-│ AVAudioEngine    │  Tap input device, resample to 16 kHz mono Float32
+│ AVAudioEngine    │  Tap input device, copy buffer
 └────────┬─────────┘
-         │ [Float]
+         │ AVAudioPCMBuffer
 ┌────────▼─────────┐
 │ FluidAudio /     │  Parakeet TDT on Apple Neural Engine
 │ AsrManager       │  Returns ASRResult { text, confidence, … }
@@ -122,6 +128,14 @@ The hotkey must include at least one modifier (`⌘`, `⌥`, `⌃`, `⇧`) — s
 │ CGEvent ⌘V       │  restore clipboard 0.3s later
 └──────────────────┘
 ```
+
+Around the recording pipeline:
+
+- **`StatusHUD`** — floating panel for launch progress and post-recording errors.
+- **`RecordingIndicator`** — pulsing red dot that follows the cursor at 60 Hz during recording.
+- **`MenuBarController`** — `NSStatusItem` whose icon and text reflect state (loading / ready / recording / transcribing / error).
+- **`UpdateChecker`** — polls GitHub Releases API every 24h, downloads + unzips + relaunches via a hardened `/bin/sh -c` helper.
+- **`AppStatus`** — observable singleton consumed by SwiftUI's Settings panel for live permission state.
 
 The whole thing is a thin Swift app around FluidAudio's Swift SDK. No Python, no Node, no FFI — just CoreML on the ANE.
 
@@ -137,7 +151,6 @@ Roughly the same as [Kesha Voice Kit](https://github.com/drakulavich/kesha-voice
 | Warm start | <1 s |
 | Recording | real-time |
 | Transcription of 5 s of speech (M2/M3) | ~300–400 ms |
-| Resample 48 kHz → 16 kHz | <10 ms |
 | Clipboard write + ⌘V dispatch | <5 ms |
 | **End-to-end (release hotkey → text appears)** | **~0.5 s** |
 
@@ -145,11 +158,11 @@ Roughly the same as [Kesha Voice Kit](https://github.com/drakulavich/kesha-voice
 
 ## Troubleshooting
 
-**App opens but nothing happens.** It's a menubar-only app (`LSUIElement` = true). Look for the mic icon in the top-right of your screen, not the Dock.
+**App opens but nothing happens.** It's a menubar-only app (`LSUIElement` = true). Look for the mic icon in the top-right of your screen, not the Dock. To re-open the Settings window, launch the app again from Finder/Alfred — that gesture re-opens Settings.
 
-**Hotkey doesn't trigger anything.** Check that the menubar status says "Ready" (not "Loading model…"). If still "Loading…", the Parakeet model is still downloading — check Console.app.
+**Hotkey doesn't trigger anything.** Open Settings → check the Status panel. If anything's orange, click its "Open Settings" button to grant. If everything's green, try the **Test recording** button to confirm the pipeline.
 
-**Text doesn't get pasted into the focused field.** Accessibility permission missing. See [First-run setup](#2-accessibility-permission-required-for-autopaste).
+**Text doesn't get pasted into the focused field.** Accessibility permission missing. Status panel will flag it with "Open Settings" → System Settings → Privacy & Security → Accessibility → toggle VoicePTT on.
 
 **`build.sh` fails with "incompatible tools version (6.0.0)".** Your Swift toolchain is older than 6.0 and you're trying to use a recent FluidAudio. The `Package.swift` in this repo pins to FluidAudio `0.7.0..<0.9.0` to stay Swift 5.10-compatible. If you want the latest FluidAudio (0.12+), upgrade to Command Line Tools 16+ (`softwareupdate -i "Command Line Tools for Xcode-16.4"`) and bump the version in `Package.swift`.
 
@@ -159,18 +172,18 @@ Roughly the same as [Kesha Voice Kit](https://github.com/drakulavich/kesha-voice
 
 **Recorded audio sounds clipped or muffled.** AVAudioEngine uses your **default input device**. Check System Settings → Sound → Input.
 
-**App says "Error: kAudioHardwareNotRunningError" or similar.** Some other app may be holding the input device. Restart VoicePTT, or unplug/replug your USB mic.
+**App disk usage keeps growing.** When FluidAudio bumps its model version, the old version stays in the cache. Settings → Model storage → trash icon next to the stale entry, or "Clear all" (active model re-downloads on next launch).
 
 ---
 
 ## Development
 
 ```sh
-# debug build
+# debug build (no codesign, no .app bundle)
 swift build
 
-# run from source (the binary will appear in the Dock — no LSUIElement when run this way)
-swift run VoicePTT
+# release build + .app bundle + codesign + auto-restart running app
+./build.sh
 
 # clean
 swift package clean
@@ -180,28 +193,57 @@ rm -rf .build VoicePTT.app
 swift package show-dependencies
 ```
 
+`build.sh` skips auto-restart when called by `release.sh` (controlled via `NO_RESTART=1`) so the in-app "Download & install" flow can be tested against the just-published release.
+
+### Cutting a release
+
+```sh
+./release.sh 0.3.0 "Release notes go here, single line."
+```
+
+The script bumps `CFBundleShortVersionString` in `Info.plist`, commits + pushes, builds, packages a `.zip`, and uses `gh release create` to publish with the zip attached. Pre-flight: clean working tree + the tag must not exist yet. There's also a Claude Code skill at `.claude/skills/release/SKILL.md` documenting the same flow for AI-assisted releases.
+
+### Generating the app icon
+
+Re-run only when the design changes:
+
+```sh
+swift tools/make_icon.swift
+```
+
+Renders a 1024×1024 master (orange rounded square + white SF mic.fill) and resamples down to all iconset sizes, then `iconutil` packages into `Resources/AppIcon.icns` which is committed.
+
 ### Project layout
 
 ```
 voice-ptt/
-├── Package.swift                      # SwiftPM manifest, FluidAudio dependency
-├── build.sh                           # swift build → .app bundle → codesign
-├── Resources/Info.plist               # Bundle metadata, permission strings
+├── Package.swift                  # SwiftPM manifest, FluidAudio dependency
+├── build.sh                       # swift build → .app bundle → codesign → auto-restart
+├── release.sh                     # cut a versioned GitHub release
+├── tools/make_icon.swift          # one-shot icon generator
+├── Resources/
+│   ├── Info.plist                 # bundle metadata, permission strings
+│   └── AppIcon.icns               # generated by tools/make_icon.swift
+├── .claude/skills/release/        # /release slash command for Claude Code
 └── Sources/VoicePTT/
-    ├── EntryPoint.swift               # @main, NSApplication setup
-    ├── AppDelegate.swift              # Wires hotkey → recorder → transcriber → paster
-    ├── Settings.swift                 # UserDefaults: mode, hotkey, launchAtLogin
-    ├── HotkeyManager.swift            # Carbon RegisterEventHotKey
-    ├── AudioRecorder.swift            # AVAudioEngine → 16 kHz Float
-    ├── Transcriber.swift              # FluidAudio AsrManager wrapper
-    ├── Paster.swift                   # NSPasteboard + CGEvent ⌘V
-    ├── LoginItem.swift                # SMAppService.mainApp register/unregister
-    ├── AppStatus.swift                # Observed permission/model state
-    ├── PermissionsView.swift          # Status panel in Settings
-    ├── MenuBarController.swift        # NSStatusItem, state-aware icon
-    ├── StatusHUD.swift                # Floating "ready" panel on launch
-    ├── RecordingIndicator.swift       # Cursor-following red dot while recording
-    └── SettingsWindow.swift           # SwiftUI Form
+    ├── EntryPoint.swift           # @main, NSApplication setup
+    ├── AppDelegate.swift          # State machine; wires every piece together
+    ├── Settings.swift             # UserDefaults: trigger, mode, hotkey, launch-at-login
+    ├── ModelInfo.swift            # Display name + expected size of the speech model
+    ├── HotkeyManager.swift        # Carbon RegisterEventHotKey
+    ├── RightCommandMonitor.swift  # NSEvent global flagsChanged → Right ⌘ alone
+    ├── AudioRecorder.swift        # AVAudioEngine tap; copies buffer for downstream
+    ├── Transcriber.swift          # FluidAudio AsrManager wrapper
+    ├── Paster.swift               # NSPasteboard + CGEvent ⌘V autopaste
+    ├── LoginItem.swift            # SMAppService.mainApp register/unregister
+    ├── ModelStorage.swift         # Inspect + clear the FluidAudio model cache
+    ├── UpdateChecker.swift        # GitHub Releases poll + Download & install
+    ├── AppStatus.swift            # Observable: mic / accessibility / model state
+    ├── PermissionsView.swift      # Status panel rendered in Settings
+    ├── MenuBarController.swift    # NSStatusItem with state-aware icon
+    ├── StatusHUD.swift            # Floating panel for launch / errors / updates
+    ├── RecordingIndicator.swift   # Cursor-following red dot during recording
+    └── SettingsWindow.swift       # SwiftUI Form, Trigger picker, all sections
 ```
 
 ### Useful one-liners
@@ -210,13 +252,10 @@ voice-ptt/
 # stream app logs
 log stream --predicate 'process == "VoicePTT"'
 
-# tail crash reports
-ls -lt ~/Library/Logs/DiagnosticReports/ | grep -i voiceptt | head -3
-
-# inspect the FluidAudio public API (after first build)
+# inspect FluidAudio's public API after the first build
 grep -rn 'public func' .build/checkouts/FluidAudio/Sources/FluidAudio/ASR/
 
-# check what model files were downloaded
+# what model files are cached
 ls -la "$HOME/Library/Application Support/FluidAudio/Models/"
 ```
 
