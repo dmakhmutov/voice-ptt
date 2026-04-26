@@ -21,8 +21,8 @@
     <key>LSUIElement</key>
     <true/>
     <key>NSMicrophoneUsageDescription</key>
-    <string>VoicePTT записывает голос для транскрипции в текст по нажатию хоткея.</string>
+    <string>VoicePTT records your voice to transcribe it into text on hotkey press.</string>
     <key>NSAppleEventsUsageDescription</key>
-    <string>Для вставки распознанного текста в активное окно.</string>
+    <string>Used to paste the recognized text into the active window.</string>
 </dict>
 </plist>

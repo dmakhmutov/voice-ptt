@@ -51,19 +51,19 @@ final class MenuBarController {
         switch state {
         case .loading:
             button.image = NSImage(systemSymbolName: "ellipsis.circle", accessibilityDescription: "Loading")
-            statusMenuItem.title = "Загрузка модели…"
+            statusMenuItem.title = "Loading model…"
         case .idle:
             button.image = NSImage(systemSymbolName: "mic", accessibilityDescription: "Idle")
-            statusMenuItem.title = "Готов"
+            statusMenuItem.title = "Ready"
         case .recording:
             button.image = NSImage(systemSymbolName: "mic.fill", accessibilityDescription: "Recording")
-            statusMenuItem.title = "● Запись…"
+            statusMenuItem.title = "● Recording…"
         case .transcribing:
             button.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "Transcribing")
-            statusMenuItem.title = "Транскрипция…"
+            statusMenuItem.title = "Transcribing…"
         case .error(let msg):
             button.image = NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: "Error")
-            statusMenuItem.title = "Ошибка: \(msg)"
+            statusMenuItem.title = "Error: \(msg)"
         }
     }
 

@@ -1,32 +1,32 @@
 # VoicePTT
 
-Push-to-talk транскрипция для macOS. Хоткей → запись с микрофона → текст в активное окно.
+Push-to-talk transcription for macOS. Hotkey → record from mic → text pasted into the active window.
 
-Стек: Swift + [FluidAudio](https://github.com/FluidInference/FluidAudio) (Parakeet TDT v3 на Apple Neural Engine). Поддержка русского и английского.
+Stack: Swift + [FluidAudio](https://github.com/FluidInference/FluidAudio) (Parakeet TDT on the Apple Neural Engine). Supports English and Russian.
 
-## Сборка
+## Build
 
 ```sh
 ./build.sh
 open VoicePTT.app
 ```
 
-При первом запуске:
-1. macOS попросит разрешение на микрофон → разрешить.
-2. Чтобы автопейст работал, дай приложению **Accessibility**: System Settings → Privacy & Security → Accessibility → добавить VoicePTT.app.
-3. Модель Parakeet (~2.5 GB) скачается при первом запуске — терпеливо ждём, прогресс в логах.
+On first launch:
+1. macOS will ask for microphone permission → allow.
+2. For autopaste to work, grant the app **Accessibility** access: System Settings → Privacy & Security → Accessibility → add `VoicePTT.app`.
+3. The Parakeet model (~2.5 GB) is downloaded on first run — be patient, progress is in the logs.
 
-## Использование
+## Usage
 
-- Хоткей по умолчанию: `⌘⇧Space` (Cmd+Shift+Space).
-- Режим по умолчанию: **toggle** (нажал — пишет, нажал ещё раз — стоп и транскрипция).
-- Альтернативный режим: **hold** (зажал — пишет, отпустил — транскрипция).
+- Default hotkey: `⌘⇧Space` (Cmd+Shift+Space).
+- Default mode: **toggle** (press to start, press again to stop and transcribe).
+- Alternative mode: **hold** (hold to record, release to transcribe).
 
-Настройки в менюбаре: иконка микрофона → Settings…
+Settings live in the menubar: mic icon → Settings…
 
-## Разработка
+## Development
 
 ```sh
-swift build           # компиляция
-swift run VoicePTT    # запуск без .app-обёртки (без LSUIElement, иконка в Dock)
+swift build           # compile
+swift run VoicePTT    # run without the .app wrapper (no LSUIElement, Dock icon shown)
 ```

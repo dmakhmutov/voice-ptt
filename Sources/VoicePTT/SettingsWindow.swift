@@ -35,8 +35,8 @@ private struct SettingsView: View {
     var body: some View {
         Form {
             Picker("Mode", selection: $mode) {
-                Text("Toggle (нажал — пишет, нажал — стоп)").tag(HotkeyMode.toggle)
-                Text("Hold (зажал — пишет, отпустил — стоп)").tag(HotkeyMode.hold)
+                Text("Toggle (press — record, press — stop)").tag(HotkeyMode.toggle)
+                Text("Hold (hold — record, release — stop)").tag(HotkeyMode.hold)
             }
             .pickerStyle(.radioGroup)
             .onChange(of: mode) { _, newValue in
@@ -104,7 +104,7 @@ final class HotkeyRecorderField: NSView {
     required init?(coder: NSCoder) { fatalError() }
 
     func refresh() {
-        label.stringValue = recording ? "Нажми сочетание…" : binding.displayString
+        label.stringValue = recording ? "Press a shortcut…" : binding.displayString
     }
 
     override var acceptsFirstResponder: Bool { true }
