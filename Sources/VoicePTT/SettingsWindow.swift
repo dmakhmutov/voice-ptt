@@ -10,6 +10,12 @@ final class SettingsWindowController: NSObject {
     var onTestRecording: (() async -> String)?
 
     func show() {
+        // Refresh observable state so the window reflects current
+        // permissions / cache state every time it's reopened (the SwiftUI
+        // view hierarchy is reused, so .onAppear only fires once).
+        AppStatus.shared.refreshPermissions()
+        ModelStorage.shared.refresh()
+
         if let window {
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
