@@ -37,9 +37,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         LoginItem.sync(with: Settings.shared.launchAtLogin)
         AppStatus.shared.refreshPermissions()
 
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in
-            Task { @MainActor in AppStatus.shared.refreshPermissions() }
-        }
+        // System notifications are an opt-in nicety; we deliver the same
+        // info via the floating HUD which doesn't need any permission.
+        // Calling notify(...) without auth is a silent no-op, so we keep
+        // the notify() calls in case the user has system notifications
+        // turned on for the app, but we no longer prompt for the perm.
         // Persistent HUD until the model finishes loading. First-time
         // download can take a couple of minutes; even on cached launches
         // CoreML compilation for the Neural Engine costs ~15s on first

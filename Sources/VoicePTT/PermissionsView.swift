@@ -21,12 +21,6 @@ struct PermissionsSection: View {
                 fixURL: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
             )
             statusRow(
-                label: "Notifications",
-                hint: "Used to confirm the app is ready when launched.",
-                granted: status.notificationsGranted,
-                fixURL: "x-apple.systempreferences:com.apple.preference.notifications"
-            )
-            statusRow(
                 label: "Speech model",
                 hint: "\(ModelInfo.nameAndSize) downloads on first launch.",
                 granted: status.modelLoaded,
