@@ -30,6 +30,7 @@ final class SettingsWindowController: NSObject {
 private struct SettingsView: View {
     @State private var mode: HotkeyMode = Settings.shared.mode
     @State private var hotkey: HotkeyBinding = Settings.shared.hotkey
+    @State private var launchAtLogin: Bool = Settings.shared.launchAtLogin
     let onChange: () -> Void
 
     var body: some View {
@@ -55,6 +56,15 @@ private struct SettingsView: View {
                         onChange()
                     }
             }
+
+            Divider()
+
+            Toggle("Launch at login", isOn: $launchAtLogin)
+                .onChange(of: launchAtLogin) { _, newValue in
+                    Settings.shared.launchAtLogin = newValue
+                    LoginItem.set(enabled: newValue)
+                    onChange()
+                }
         }
         .padding(20)
         .frame(width: 380)

@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let recorder = AudioRecorder()
     private let transcriber = Transcriber()
     private let hud = StatusHUD()
+    private let recordingIndicator = RecordingIndicator()
     private var isRecording = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -18,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         configureHotkeyCallbacks()
         applySettings()
+        LoginItem.sync(with: Settings.shared.launchAtLogin)
 
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
         hud.show("VoicePTT loading model…", duration: 5.0)
@@ -83,6 +85,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             try recorder.start()
             isRecording = true
             menubar.update(state: .recording)
+            recordingIndicator.show()
         } catch {
             NSLog("VoicePTT: recorder start failed: \(error)")
             menubar.update(state: .error("\(error)"))
@@ -92,6 +95,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func finishRecording() {
         let samples = recorder.stop()
         isRecording = false
+        recordingIndicator.hide()
         menubar.update(state: .transcribing)
 
         Task { [weak self] in

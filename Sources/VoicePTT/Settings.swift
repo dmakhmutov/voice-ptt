@@ -34,6 +34,7 @@ final class Settings {
         static let mode = "hotkey.mode"
         static let keyCode = "hotkey.keyCode"
         static let modifiers = "hotkey.modifiers"
+        static let launchAtLogin = "app.launchAtLogin"
     }
 
     var mode: HotkeyMode {
@@ -53,6 +54,11 @@ final class Settings {
             defaults.set(Int(newValue.keyCode), forKey: Key.keyCode)
             defaults.set(Int(newValue.modifiers), forKey: Key.modifiers)
         }
+    }
+
+    var launchAtLogin: Bool {
+        get { defaults.bool(forKey: Key.launchAtLogin) }
+        set { defaults.set(newValue, forKey: Key.launchAtLogin) }
     }
 }
 
